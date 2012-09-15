@@ -6,25 +6,29 @@
 # This should be sourced at the end of the appropriate .bashrc file
 
 function gpush() {
-  if [[ $# != 1 ]]; then
-    echo "Usage: gpush <username>"
+  if [[ $# == 0 ]]; then
+    echo "Usage: gpush <username> [email]"
     return  1
   fi
 
-  saved_user = `git config -l`
-  echo "Current git identity: ${saved_user}"
-  echo "Pushing with username: ${1}"
-  git config user.name "${1}"
-
-  git commit --amend --reset-author
-
-  echo "Resetting to previous user"
-  git config user.name "${saved_user}"
-
-  if [[ `git config -l` != ${saved_user} ]]; then
-    echo "Failed to reset to user: ${saved_user}"
-    return 1
+  AUTH_NAME=$1
+  AUTH_EMAIL="student@nosite.com"
+  if [[ $# == 2 ]]; then
+    AUTH_EMAIL=$2
   fi
 
-  return 0
+  #Turns out we don't need to do this but the code is handy anyways
+  #SAVED_USER=$(git config -l | grep user.name | sed 's/user.name=\(.*\)$/\1/')
+  #echo "Current git identity: ${SAVED_USER}"
+  AUTH_STR="${AUTH_NAME} <${AUTH_EMAIL}>"
+  echo "Pushing with author: ${AUTH_STR}"
+
+  CM_MSG=`git log -n 1 HEAD --format=format:%s%n%b`
+  echo "Using commit message: \"${CM_MSG}\""
+
+  # Amend the commit
+  git commit --amend --author "${AUTH_STR}" -m "${CM_MSG}"
+
+  # Now do the push
+  git push
 }
