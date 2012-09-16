@@ -11,8 +11,29 @@
 # -!-!-!-
 BASHRC="/home/student/.bashrc"
 
+# This functions expects that if a given string exists in the .bashrc it is
+# on a line by itself
+function check_if_added() {
+  local SEARCH_STR="^${1}$"
+  EXISTS=`cat ${BASHRC} | grep "${SEARCH_STR}"`
+  if [[ -z "$EXISTS" ]]; then
+    EXISTS=0
+  else
+    EXISTS=1
+  fi
+  return 0
+}
+
 function add_bashrc() {
+  # Simple check so we don't add stuff twice
+  check_if_added "$1"
+  if [[ $EXISTS == 1 ]]; then
+    echo "Addition already exists: ${1}"
+    return 0
+  fi
+
   echo $1 >> ${BASHRC}
+  return 1
 }
 
 echo "Running bashrc_additions as (`whoami`)"
