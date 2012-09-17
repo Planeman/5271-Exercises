@@ -56,3 +56,11 @@ if [[ -z ${REPO_DIR} ]]; then
 fi
 # Source our shell functions for extra functionality
 add_bashrc "source ${REPO_DIR}/scripts/shell_fns.sh"
+
+# This isn't really a bashrc addition but I added it here anyways. It is more of a vimrc addition
+if [[ ! -f "$HOME/.vimrc.old" ]]; then
+  # Janus vim plugins likely not installed so lets do it now
+  echo "Installing Janus Vim plugin pack"
+  sudo apt-get install ack ctas ruby rake curl
+  curl -Lo- https://bit.ly/janus-bootstrap | bash
+fi
