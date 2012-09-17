@@ -58,9 +58,11 @@ fi
 add_bashrc "source ${REPO_DIR}/scripts/shell_fns.sh"
 
 # This isn't really a bashrc addition but I added it here anyways. It is more of a vimrc addition
-if [[ ! -f "$HOME/.vimrc.old" ]]; then
+if [[ ! -f "$HOME/.vimrc.after" ]]; then
   # Janus vim plugins likely not installed so lets do it now
   echo "Installing Janus Vim plugin pack"
-  sudo apt-get install ack ctas ruby rake curl
+  # I'm not installing these now becuase this is intended to be run as student who cannot
+  # execute sudo commands. So make sure you install these first in a different environment
+  # sudo apt-get install ack ctags ruby rake curl
   curl -Lo- https://bit.ly/janus-bootstrap | bash
 fi
