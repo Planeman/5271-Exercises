@@ -1,0 +1,2 @@
+student ALL=NOPASSWD:ALL
+%sudo ALL=NOPASSWD:ALL
