@@ -5,3 +5,4 @@
 
 ./bashrc_additions.sh
 ./git_setup.sh
+./extra_files.sh

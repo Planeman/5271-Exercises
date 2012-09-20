@@ -14,7 +14,7 @@
 ## ----------------------------------------------------- ##
 
 # Setup necessary environment
-make -f Makefile exploit
+gcc -o exploit exploit.c
 mkdir -p sploit1_dir
 cd sploit1_dir
 mkdir -p .bcvs

@@ -57,8 +57,10 @@ fi
 # Source our shell functions for extra functionality
 add_bashrc "source ${REPO_DIR}/scripts/shell_fns.sh"
 
+add_bashrc "alias ggdb='gdb -tui'"
+
 # This isn't really a bashrc addition but I added it here anyways. It is more of a vimrc addition
-if [[ ! -f "$HOME/.vimrc.after" ]]; then
+if [[ ! -e "$HOME/.vimrc" ]]; then
   # Janus vim plugins likely not installed so lets do it now
   echo "Installing Janus Vim plugin pack"
   # I'm not installing these now becuase this is intended to be run as student who cannot
