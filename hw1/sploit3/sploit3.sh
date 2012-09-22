@@ -1,5 +1,14 @@
 #!/bin/bash
 
+## ------------------------ Sploit Description ------------------------------ ##
+## This sploit generally exploits bad path checking in bcvs. (Add more later)
+##
+## Note: After you run this you should reset the sudoers file by hand or
+##      by using the reset script in ~/repo/scripts/reset_sudoers.sh . This
+##      needs to be run as root.
+## -------------------------------------------------------------------------- ##
+
+
 # Setup environment
 mkdir -p sploit3_dir
 cd sploit3_dir
