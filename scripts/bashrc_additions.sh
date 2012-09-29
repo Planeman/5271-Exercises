@@ -59,6 +59,24 @@ add_bashrc "source ${REPO_DIR}/scripts/shell_fns.sh"
 
 add_bashrc "alias ggdb='gdb -tui'"
 
+DEPS_MET=1
+OUT=$(which curl)
+if [[ $? == "" ]]; then
+	echo "Missing curl"
+	DEPS_MET=0
+fi 
+
+OUT=$(which rake)
+if [[ $? == "" ]]; then
+	echo "Missing rake"
+	DEPS_MET=0
+fi
+
+if [[ $DEPS_MET -eq 0 ]]; then
+	echo "Skipping janus vim plugin installation because of missing dependencies"
+	exit 1
+fi
+
 # This isn't really a bashrc addition but I added it here anyways. It is more of a vimrc addition
 if [[ ! -e "$HOME/.vimrc" ]]; then
   # Janus vim plugins likely not installed so lets do it now

