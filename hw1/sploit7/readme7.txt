@@ -5,29 +5,40 @@ This sploit is a buffer overflow leading to a control flow hijack. The overwritt
 is_blocked function points back up the stack into the approximate region where the attack string is located
 and hits a nop sled.
 
-
-Sploit7 Step-by-Step
-====================
-* This sploit works by taking advantage of the realpath function inside of is_blocked. Ideally, if realpath worked as it should,
+In more detail:
+This sploit works by taking advantage of the realpath function inside of is_blocked. Ideally, if realpath worked as it should,
 there would be no attack. However, it copies the path inputted into a buffer while not checking the size of the buffer, leading to
 an overflow.
 
-* We were a little surprised to find that realpath was simply copying bytes from the inputted path to the result buffer (specifically the
+We were a little surprised to find that realpath was simply copying bytes from the inputted path to the result buffer (specifically the
 "canonical_pathname" buffer) without checking the size of the result buffer. We had originally envisioned an attack of making realpath
 fail by having an incredibly long file path and then a symlink to the sudoers file (for example). We would then overwrite the sudoers
 file to allow use to sudo into root. But, the sploit was made easy due to the fact that realpath just copied the bytes.
 
-* It was trivial to generate an attack string and input it into bcvs. This attack string was quite large (800 bytes), but that was because
+It was trivial to generate an attack string and input it into bcvs. This attack string was quite large (800 bytes), but that was because
 the "canononical_pathname" buffer was 500 bytes, with another 32 bytes or so inbetween the end of the buffer (higher address) and the lcoation
 of is_blocked's return address.
 
-* The attack string was formatted as such [ return address ][ nops ] [shell code]. We just want to highlight that the nop sled was made larger due
+The attack string was formatted as such [ return address ][ nops ] [shell code]. We just want to highlight that the nop sled was made larger due
 to some unexpected behavior described below.
 
-* We found that realpath, while successfully copying the return address and nops, would mangle the shellcode. Random byte shifts would occur and
+We found that realpath, while successfully copying the return address and nops, would mangle the shellcode. Random byte shifts would occur and
 0x00000000 would be written in. This rendered the shellcode useless, we could easily hit the nop sled but the shellcode would not work. The solution was
 to point the return address way up the stack into argv[2], which is where the un-mangled attack string was located. Then, the nop sled would be hit and
 the shell code would execute.
+
+Sploit7 Step-by-Step
+====================
+* We input the attack string as the second argument to bcvs
+
+* When is_blocked is called, this string is passed to is_blocked.
+
+* realpath then copies the attack string into canonical_filename, which is then overflowed
+
+* Due to realpath mangling the shellcode, we have the return overwritten return address of is_blocked point
+up into argv[2] (which is quite a ways up there)
+
+* The nop sled is hit and the shellcode executes
 
 * A root shell should now be open.
 
