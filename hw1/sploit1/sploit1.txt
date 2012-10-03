@@ -1,0 +1,18 @@
+Sploit1 Description
+===================
+Sploit1 takes advantage of a buffer overflow in the checkin conditional
+of the copyFile function. This sploit is a standard buffer overflow
+leading to a control flow hijack. The overwritten return pointer of the
+copyFile function points back down the stack into the approximate region
+where the src and dest buffers are which hits a nop sled.
+
+
+Design Changes to Prevent Sploit 
+=================================
+This sploit could most simply be changed by a proper use of the strncpy
+and strncat functions to avoid the buffer overflow.
+
+Then the question becomes what to do when some input becomes struncated,
+do you explcitly check if the input string is too long for the
+destination buffer and return an error or do you take whatever was
+copied?
