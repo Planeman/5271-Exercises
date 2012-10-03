@@ -21,7 +21,7 @@ find ../../ -regex ".*/sploit[0-9]/sploit[0-9].sh" -print -exec cp {} `pwd` \;
 
 
 # Gather all sploit descriptions
-find ../../ -regex ".*/sploit[0-9]/sploit[0-9].txt" -print -exec cp {} `pwd` \;
+find ../../ -regex ".*/sploit[0-9]/readme[0-9].txt" -print -exec cp {} `pwd` \;
 
 
 # Add the design.txt file

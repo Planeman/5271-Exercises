@@ -160,7 +160,7 @@ fi
 
 cat <<EOS > "${REPODIR}/my_chown"
 #!/bin/bash
-echo "Fake chmod script"
+echo "Fake chown script"
 EOS
 
 ln -s /bin/chown my_chown

@@ -71,12 +71,14 @@ time of the lock it will stay that way until the process is done with it
 meaning that an external process can't change it to link to some
 sensitive file.
 
-You could also open the file before doing any checking and use the fstat
-system call to obtain file information on the already opened file.
-
 To prevent the modification of the chmodString in copyFile would be
 fixed by using strncpy and strncat just as described in readme1.txt for
 the checkin clause of the conditional.
+
+To prevent chown from being overwritten you should add /bin to your block
+list at the very least but you would be naive to thing you are now
+completely protected. Look at readme3.txt for more information on the
+block list and enforcement of its intended rules.
 
 
 Argument for Sploit Uniqueness
@@ -100,3 +102,9 @@ overflow. This sploit uses an overflow in the checkout clause of the
 conditional and sploit1 does so in the checkin clause. Also, sploit1
 would not have worked using checkout because of the infinite string copy
 problem.
+
+Like sploit3, this sploit creates its own directory and .bcvs folder. This
+is for convenience not necessity like sploit3. Without enough time left we
+had to leave it in its original design. We do create an exact replica of
+the .bcvs block.list file to show that it is not depending on the empty
+block list.
