@@ -1,17 +1,10 @@
 #!/bin/bash
 
-## -------------------- Description -------------------- ##
-# The bcvs program uses a relative path to check its
-# "block.list". Therefore you can simply execute bcvs
-# from a directory other than its usual but with the
-# same directory layout and you can get around the blocks
-#
-# Right now this sploit is not complete but being able to
-# bypass the block check is a start.
-#
-# Right now I am working on exploiting the strcpy/strcat
-# overflow in the copyFile function.
-## ----------------------------------------------------- ##
+## ---------------------- Description ---------------------- ##
+#  This exploit takes advantage of a buffer overflow in the
+#  copyFile function of bcvs. See sploit1.txt for more
+#  information.
+## --------------------------------------------------------- ##
 
 cat <<EOS > "exploit.c"
 #include <stdlib.h>

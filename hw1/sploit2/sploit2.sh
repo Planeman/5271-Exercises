@@ -1,10 +1,11 @@
 #!/bin/bash
 
-## ---------------------- Description ------------------------ ##
-## This sploit inserts shellcode into the log buffer in
-## main and then uses the printf vulnerability in writeLog
-## to overwite the return pointer to go to this code.
-## ----------------------------------------------------------- ##
+## ------------------------ Description -------------------------- ##
+#  This exploit takes advantage of an uncontrolled format string
+#  vulnerability in bcvs's writeLog funciton. See sploit2.txt for
+#  more information.
+## --------------------------------------------------------------- ##
+
 
 # ------------------- Create Scripts ------------------- #
 rm -f payload.py

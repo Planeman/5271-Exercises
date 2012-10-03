@@ -1,5 +1,11 @@
 #!/bin/bash
 
+## --------------------------- Sploit Description ---------------------------- ##
+#  This sploit takes advantage of a TOCTOU vulnerability in bcvs between the
+#  is_blocked function call and when the file is actually opened. See
+#  sploit5.txt for more information.
+## --------------------------------------------------------------------------- ##
+
 REPODIR=".bcvs"
 BLOCKLIST="block.list"
 BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"

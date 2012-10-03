@@ -59,6 +59,12 @@ add_bashrc "source ${REPO_DIR}/scripts/shell_fns.sh"
 
 add_bashrc "alias ggdb='gdb -tui'"
 
+
+if [[ $# -gt 0 && $1 == "-s" ]]; then
+  echo "Skipping Janus Vim plugins"
+  exit 1
+fi
+
 DEPS_MET=1
 OUT=$(which curl)
 if [[ $? == "" ]]; then

