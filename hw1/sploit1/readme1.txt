@@ -37,6 +37,21 @@ and strncat functions to avoid the buffer overflow. For the checkin clause
 of copyFile this is specifically on lines 151-156. They should all be
 changed you use their bound enforcing brothers strncpy and strncat.
 
+For the src buffer you could simply do:
+---
+strncpy(src, arg, 63);
+src[63] = '\0'; // Since strncpy does not guarantee null-termination
+---
+
+For the dst buffer you need to take into account the other strings which
+bcvs writes:
+---
+strncpy(dst, REPOSITORY, 6);
+strncat(dst, "/", 1);
+strncat(dst, src, 57);
+---
+57 was obtained via 64 (buffer size) - 1 (null) - 5 (".bcvs") - 1 ("/")
+
 Then the question becomes what to do when some input becomes truncated,
 do you explcitly check if the input string is too long for the
 destination buffer and return an error or do you take whatever was
