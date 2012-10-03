@@ -12,10 +12,12 @@ which is used in the addresses I needed to write to.
 
 The buffer in main contains the sequence of addresses that the printf
 statement ultimately wants to overwrite. These addresses are the
-individual byte addresses of writeLog's return pointer. Since my printf
-attack overwrites one byte at a time I needed to place all for byte
-addresses in here. I also repeated the 4 addresses several times in case
-things get shifted on the stack but so far this hasn't been necessary.
+individual byte addresses of writeLog's return pointer as well as the
+pointer for tempString. Since my printf attack overwrites one byte at
+a time I needed to place the full address for each of the 4 bytes (another 4
+including tempString addresses) of the return pointer in log. I also repeated
+the 4 addresses several times in case things get shifted on the stack
+but so far this hasn't been necessary.
 
 The heap buffer in writeLog is setup to hold the printf directives as
 well as the shellcode. Since my addresses will no longer be stored right
@@ -35,9 +37,37 @@ format string. Luckily I found shellcode online (source in python
 script) that re-opens the stdin file descriptor before executing the
 shell.
 
-Design Changes to Protect BCVS
-==============================
+
+Sploit2 Step-by-Step
+====================
+* bcvs starts and makes it through the block list loading. The data in
+  argv[2] (the addresses for the %n directives) are writtent to the log
+buffer in main.
+* The writeLog method is entered and the tempString buffer is allocated.
+* Then the printf directives and shellcode are copied into the
+  tempString.
+* When writeLog executes 'printf(tempString)' and overwrites writeLog's
+  return address to point into the heap at tempstring + ~75bytes to
+account for the directives.
+  * While debugging this sploit I was concerned about the
+    free(tempString) call mangling the shellcode before writeLog would
+return so I added printf directives to overwrite tempString with NULL. I
+don't think this is required anymore.
+
+
+Design Changes to Prevent Sploit2
+=================================
 While this was one of the more complicated sploits it has the easiest fix. Simply
-use "printf("%s", tempString)" so that the input is interpreted strictly
+use "printf("%s", tempString)" in writeLog so that tempString is interpreted strictly
 as a string to be printed and not as a format string with printf
 directives.
+
+Argument for Sploit Uniqueness
+==============================
+This exploit does not depend on any bad coding practices or
+vulnerabilities outside fot he uncontroled format string in writeLog.
+The addresses put into main are significantly lower than the size of log
+so it is not overflowed. Not even tempString in writeLog is overflowed.
+
+There is no other sploit that utilizes the uncontrolled printf string so
+therefore this is a unique sploit.
