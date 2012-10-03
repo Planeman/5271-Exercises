@@ -1,8 +1,8 @@
 Sploit6 Description
 ===================
-Sploit6 takes advantage of a buffer overflow in the checkout conditional
-of the copyFile function. This sploit is a standard buffer overflow
-leading to a control flow hijack. The overwritten return pointer of the
+Sploit6 takes advantage of a buffer overflow ("user") in the checkout conditional
+of the copyFile function by inputting an attack string through environment variable USER.
+This sploit is a standard buffer overflow leading to a control flow hijack. The overwritten return pointer of the
 copyFile function points back up the stack into the approximate region
 where the buffer has overflowed and hits a nop sled.
 
@@ -28,13 +28,13 @@ to the terminal.
 address point "up", so that the return address would point higher up the stack.
 
 * To overflow "user", we targeted the strcat() function, which fails to check the size of the buffer it is copying into. The
-data it copies is the environment variable "User". We overwrite the "User" environment variable with the attack string, so that
+data it copies is the environment variable "User". We overwrite environment variable USER with the attack string, so that
 bcvs copies in this string to the buffer "user" which then overflows.
 
 * There was one additional trick, a couple of lines prior, bcvs forked itself. Our attack takes place in the child process that calls
 execlp to "chown" a file. If the execlp executes successfully, our attack would not work as the process image of the bcvs child is destroyed.
-So we need the execlp to fail and the child process to return in order to for the sploit to work. The solution was to overwrite the "Path" environement
-variable to just be "", so that "chown" fails.
+So we need the execlp to fail and the child process to return in order to for the sploit to work. The solution was to overwrite environment variable PATH
+to just be "", so that "chown" fails.
 
 * Now that the execlp call fails, we return into the child process and then return from copyFile. The return address of copyFile points into the nop
 sled of the overflowed "user" buffer. The nops are hit and slid down, then the shell code is executed.
@@ -46,7 +46,8 @@ Design Changes to Prevent Sploit6
 =================================
 This sploit could most simply be prevented by a proper use of the strncat function to avoid the buffer overflow. For the checkout clause
 of copyFile this is specifically on line 189. Here, strcat() should be changed to strncat(), which will only copy "n" bytes (of course the
-terminating character must be taken into account).
+terminating character must be taken into account). Hard links to "chown" should also probably be put in, in order to avoid setting env PATH
+to be "".
 
 Then the question becomes what to do when some input becomes truncated,
 do you explcitly check if the input string is too long for the
@@ -56,6 +57,8 @@ copied?
 
 Arugement for Sploit Uniqueness
 ===============================
-This is the only sploit that overflows the "user" buffer with strcat() in copyFile. This is also the only sploit that overwrites the "User" environment
-variable to something other than what is expected (sploit3 overwrites the "User" env, however it does so with "root", which is a possible value for "User"
-and would be difficult to check as the root user could actually be using bcvs).
+This is the only sploit that overflows the "user" buffer with strcat() in copyFile. This is also the only sploit that overwrites environment
+variable USER to something other than what is expected (sploit3 overwrites env USER, however it does so with "root", which is a possible value for "User"
+and would be difficult to check as the root user could actually be using bcvs). Additionally, this sploit differs from sploit5 by removing env PATH instead
+of having a hard path to chown. The fix for this sploit (hard path to chown) would not break sploit5. Sploit3 also uses env USER, but it does not overflow
+the "user" buffer, meaning any solutions using strncat() will stop this sploit (6) but not sploit3.
