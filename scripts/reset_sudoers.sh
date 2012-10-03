@@ -7,5 +7,7 @@ cp /etc/sudoers /etc/sudoers.bak
 cat /etc/sudoers | sed '/^%student ALL=NOPASSWD: \/bin\/sh$/d' > /etc/temp_sudoers
 
 mv /etc/temp_sudoers /etc/sudoers
+chown root /etc/sudoers
+chmod 0440 /etc/sudoers
 
 echo "Check that the sudoers file is what you expect"

