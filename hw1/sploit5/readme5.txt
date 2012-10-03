@@ -41,7 +41,11 @@ and the runner (same script, just a falg to switch).
   Linker - The linker does the job of switching the file in the cwd
 between an actual file and a link to the /etc/sudoers file. On each loop
 it also checks if the target file's size (/etc/sudoers) matches the one
-we made. If so we assume the exploit worked and exit.
+we made. If so we assume the exploit worked and exit. The linker does
+have a small sleep because we found that if we let it go full speed it
+usually took longer for the race condition to hit. The sleep occurs
+after the file is linked to /etc/sudeors. Besides the sleep there is not
+other timing between the linker and runner. 
 
   Runner - The runner's job is solely to run bcvs with the 'co' opcode
 and the filename is the same as the one we previously checked-in. This

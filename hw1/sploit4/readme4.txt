@@ -50,10 +50,10 @@ when it returns main will do so shortly after, executing our shellcode.
 Since doing this requires us knowing the exact addresses for main's
 stack we cannot take a simple guess approach as for other overflows. For
 this we have a python program which runs bcvs with mock input under gdb
-and obtains a good guess for the frame address in main (%ebp). We then
-during the attack we try frame addresses in 16byte increments out from
-here in either direction. Usually we hit the correct address within one
-offset fromt he guess.
+and obtains a good guess for the frame address in main (%ebp). Then the
+attack script tries the attack on bcvs using different frame addresses
+in increments of 16 bytes out from our guess in either direction.
+Usually we hit the correct address within one offset from the guess.
 
 
 Sploit4 Step-by-Step
