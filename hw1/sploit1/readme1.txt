@@ -15,9 +15,11 @@ operations (which should fail to open the log).
 * This exploits lies in copyfile which main calls with argv[2], our
 shellcode. copyFile enters the checkin clause of its first conditional.
 
-* Fist, argv[2] is copied into the src buffer using strcpy. This will
-overflow but the way our shellcode is setup this likely won't give us
-what we want.
+* First, argv[2] is copied into the src buffer using strcpy. This will
+overflow src but it is not the overflow we are targeting. We really want
+to overflow dst since that gives us more room for our nop sled
+and shellcode. Also, src is going to be overwritten anyways in the next
+overflow.
 
 * Second, copyFile fills the dst buffer with the repository directory
 and then our shellcode which also overflows and this is where we overwrite
