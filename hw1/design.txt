@@ -5,6 +5,7 @@ Input whitelisting stands out a good design practice that is obviously missing. 
 
 Even if you spent a long time listing every directory that should be blocked, consider the possibility that the root user adds a new directory that only has read/write for root. If nobody updates the block list you have a new vulnerability. With the high frequency of filesystem changes in a real environment this is likely to happen. If you take the whitelist approach you may end up with legitimate user complaints about directories they cannot checkin or checkout but at least the system is secure and these problems are easily audited and fixed. This corresponds to the idea of using safe defaults; In this case default to not allowing access.
 
+As the whitelist would check only locations deemed appropriate (by an administrator), symbolic links would fail as an attack venue because the actual path to the file would be determined before using the file.
 
 Language/Library,Process
 ========================
