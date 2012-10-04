@@ -41,7 +41,7 @@ shell.
 Sploit2 Step-by-Step
 ====================
 * bcvs starts and makes it through the block list loading. The data in
-  argv[2] (the addresses for the %n directives) are writtent to the log
+  argv[2] (the addresses for the %n directives) are written to the log
 buffer in main.
 * The writeLog method is entered and the tempString buffer is allocated.
 * Then the printf directives and shellcode are copied into the
@@ -65,7 +65,7 @@ directives.
 Argument for Sploit Uniqueness
 ==============================
 This exploit does not depend on any bad coding practices or
-vulnerabilities outside fot he uncontroled format string in writeLog.
+vulnerabilities outside of the uncontrolled format string in writeLog.
 The addresses put into main are significantly lower than the size of log
 so it is not overflowed. Not even tempString in writeLog is overflowed.
 

@@ -26,7 +26,7 @@ and then our shellcode which also overflows and this is where we overwrite
 the return address.
 
 * Since the contents of src and dst are gibberish they won't result in a
-file successuflly being opened so copyFile will return after the file check.
+file successfully being opened so copyFile will return after the file check.
 
 * The return jumps into our nopsled which leads to the standard shellcode
 for a exec of /bin/sh 
@@ -55,13 +55,13 @@ strncat(dst, src, 57);
 57 was obtained via 64 (buffer size) - 1 (null) - 5 (".bcvs") - 1 ("/")
 
 Then the question becomes what to do when some input becomes truncated,
-do you explcitly check if the input string is too long for the
+do you explicitly check if the input string is too long for the
 destination buffer and return an error or do you take whatever was
 copied?
 
 
-Arugement for Sploit Uniqueness
-===============================
+Argument for Sploit Uniqueness
+==============================
 This is the only sploit we have to overflow the src/dst buffers of copyFile
 using the checkin conditional. Sploit5 uses the checkout conditional to
 overflow the src buffer to overwrite the chmod string. From the lazy

@@ -9,7 +9,7 @@ where the buffer has overflowed and hits a nop sled.
 
 Sploit6 Step-by-Step
 ====================
-* In order for this sploit to work, a file must first be succcessfully checked in
+* In order for this sploit to work, a file must first be successfully checked in
 to bcvs. The file does not matter, so a temporary file is made and dummy text redirected
 in for the comments that bcvs prompts for.
 
@@ -50,12 +50,12 @@ terminating character must be taken into account). Hard links to "chown" should 
 to be "".
 
 Then the question becomes what to do when some input becomes truncated,
-do you explcitly check if the input string is too long for the
+do you explicitly check if the input string is too long for the
 destination buffer and return an error or do you take whatever was
 copied?
 
 
-Arugement for Sploit Uniqueness
+Argument for Sploit Uniqueness
 ===============================
 This is the only sploit that overflows the "user" buffer with strcat() in copyFile. This is also the only sploit that overwrites environment
 variable USER to something other than what is expected (sploit3 overwrites env USER, however it does so with "root", which is a possible value for "User"

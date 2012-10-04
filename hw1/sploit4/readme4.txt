@@ -16,7 +16,7 @@ to dereference argv[2] while calling copy file it will segfault and main
 will never return.
 
 To get around this we added more to our attack string beyond the return
-addresses. In the sploit script, these additionas are called the
+addresses. In the sploit script, these additions are called the
 shellcode addition (SC_ADD). What it does is essentially rewrite the
 pointers for argv rather than leaving ".comments" to provide an invalid
 address. After our "shellcode addition" overwrites these pointers here

@@ -7,7 +7,7 @@ like this and fake a block.list. With this in mind, sploit3 creates its
 own empty block.list and uses this new lack of restriction to overwrite
 the sudoers file to give the student group sudo access without a password.
 
-Since the sudoers file has strict rules on file owernship(root) and file
+Since the sudoers file has strict rules on file ownership(root) and file
 permissions (440) we had to prevent bcvs from using chmod and chown on
 the written file. To do this we created our own chmod script in the
 local directory and added '.' to the front of the path so that when

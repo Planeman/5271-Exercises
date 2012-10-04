@@ -1,6 +1,6 @@
 Sploit7 Description
 ===================
-Sploit7 takes advantage of a buffer overflow in the is_blocked fucntion caused by the realpath fucntion. 
+Sploit7 takes advantage of a buffer overflow in the is_blocked function caused by the realpath fucntion. 
 This sploit is a buffer overflow leading to a control flow hijack. The overwritten return pointer of the
 is_blocked function points back up the stack into the approximate region where the attack string is located
 and hits a nop sled.
@@ -16,7 +16,7 @@ fail by having an incredibly long file path and then a symlink to the sudoers fi
 file to allow use to sudo into root. But, the sploit was made easy due to the fact that realpath just copied the bytes.
 
 It was trivial to generate an attack string and input it into bcvs. This attack string was quite large (800 bytes), but that was because
-the "canononical_pathname" buffer was 500 bytes, with another 32 bytes or so inbetween the end of the buffer (higher address) and the lcoation
+the "canononical_pathname" buffer was 500 bytes, with another 32 bytes or so in-between the end of the buffer (higher address) and the location
 of is_blocked's return address.
 
 The attack string was formatted as such [ return address ][ nops ] [shell code]. We just want to highlight that the nop sled was made larger due
@@ -50,6 +50,6 @@ means realpath will allocate a buffer of at most PATH_MAX bytes. Of course this 
 space, we avoid overflowing any buffers that are too small.
 
 
-Arugement for Sploit Uniqueness
+Argument for Sploit Uniqueness
 ===============================
 This is the only sploit that uses the realpath vulnerability.
