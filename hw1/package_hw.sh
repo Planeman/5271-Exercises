@@ -25,8 +25,7 @@ find ../../ -regex ".*/sploit[0-9]/readme[0-9].txt" -print -exec cp {} `pwd` \;
 
 
 # Add the design.txt file
-cp design.txt ./
-
+cp ../../design.txt ./
 cd ..
 
 echo "Creating tarball: ${TAR_NAME}.tar.gz"
