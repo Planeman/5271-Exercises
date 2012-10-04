@@ -22,6 +22,8 @@ bytes long and then append the permissions we want for the resulting
 file (ie 440). The 440 will be written over the chmodString variable
 giving us the permissions we need for the sudoers file.
 
+** Note: Be patient with this TOCTOU attack, we have seen it take
+	up to 30 seconds.
 
 Sploit5 Step-by-Step
 ====================

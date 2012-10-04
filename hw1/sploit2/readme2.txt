@@ -37,6 +37,12 @@ format string. Luckily I found shellcode online (source in python
 script) that re-opens the stdin file descriptor before executing the
 shell.
 
+** Note: I have this printf brute forcing some of the addresses just to
+	be sure but it has been consistently working at base pointer
+	offset 96 and printf dpa offset 0. These values get printed as
+	the script executes and I just wanted you to know so you don't
+	assume it isn't working.  
+
 
 Sploit2 Step-by-Step
 ====================
