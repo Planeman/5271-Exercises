@@ -1,0 +1,29 @@
+Input Whitelisting
+==================
+
+Input whitelisting stands out a good design practice that is obviously missing. It can be seen in the block.list method BCVS uses to enforce directories that should not be written/read to. First of all the block.list can be easily circumvented by executing BCVS from your own directory with your own block.list. Beyond this, the block.list take a blacklisting approach and misses important directories such as /bin/. Whitelisting would be a much better approach.
+
+Even if you spent a long time listing every directory that should be blocked, consider the possibility that the root user adds a new directory that only has read/write for root. If nobody updates the block list you have a new vulnerability. With the high frequency of filesystem changes in a real environment this is likely to happen. If you take the whitelist approach you may end up with legitimate user complaints about directories they cannot checkin or checkout but at least the system is secure and these problems are easily audited and fixed. This corresponds to the idea of using safe defaults; In this case default to not allowing access.
+
+
+Language/Library,Process
+========================
+BCVS is not a program that benefits much from the efficiency gains of being written in C. For single file operation which BCVS is doing, the end user would not notice a decrease in performance if BCVS was written in a language like Python. Here are some features of Python that could help programmers in the design of BCVS:
+
+* Memory allocation and deallocation is handled by Python.
+* String concatenation and copying overflows, a large source of buffer overflows in BCVS are not possible in Python because memory for strings and many other data structures are dynamically allocated as needed.
+* Python as well as many languages are type-safe which helps prevent the misinterpretation of data. In C everything just boils down to bytes which makes checking the validity of some data much tougher and makes attacks easier.
+* There are many non-intuitive semantics used in C such as pointers and unclear conventions of built-in function. These often lead to programmer-mistakes that could be avoided by using Python or another high-level language (higher than C).
+* C does not have any exception mechanism. If BCVS was written in Python we could use exceptions to handle errors in a more understandable and consistent manner.
+
+If another language is not used, the library calls that are used should at least be updated to “safer-twin” versions. For example: srtcpy –> strncpy, however this starts to fall into the category of sloppy coding which we are assuming is fixed.
+
+
+Separation of Privilege
+=======================
+
+BCVS lacks support for the separation of privilege principle. Depending on the functionality in BCVS it is possible that root access is required, however it certainly isn’t required for the majority of the code. If BCVS was programmed in a more modular fashion we could group all code requiring root access into one module. This module could be put in a separate process with the suid bit set for root access.
+
+For this to be meaningful to security we are assuming this new module is programmed in a secure fashion. We are treating it as a Trusted Code Base. By separating the code, any overflows or other generally bad programming practices in the untrusted code will only result in something that the executing user could have done themselves.
+
+Modularization is a good practice even when not considering security. It makes programs easier to understand and helps users and programmers reason about how they work as they grow from programs to large applications.
