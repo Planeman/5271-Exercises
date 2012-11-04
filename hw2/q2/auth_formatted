@@ -1,0 +1,107 @@
+10:10:33.893105 ARP, Request who-has 192.169.1.3 tell 192.169.1.2, length 46
+........R.....................................
+10:10:33.893673 ARP, Reply 192.169.1.3 is-at 52:00:00:00:00:03 (oui Unknown), length 46
+........R.........R...........................
+10:10:33.893701 IP 192.169.1.2.44821 > 192.169.1.3.www: Flags [S], seq 3595045594, win 14600, options [mss 1460,sackOK,TS val 61703855 ecr 0,nop,wscale 2], length 0
+E..<.u@.@.*............P.H
+.......9.p..........
+............
+10:10:33.893796 IP 192.169.1.3.www > 192.169.1.2.44821: Flags [S.], seq 3585986565, ack 3595045595, win 14480, options [mss 1460,sackOK,TS val 61703626 ecr 61703855,nop,wscale 2], length 0
+E..<..@.@..d.........P.......H
+...8.A..........
+............
+10:10:33.894430 IP 192.169.1.2.44821 > 192.169.1.3.www: Flags [.], ack 1, win 3650, options [nop,nop,TS val 61703856 ecr 61703626], length 0
+E..4.v@.@.*............P.H
+........B.......
+........
+10:10:33.904713 IP 192.169.1.2.44821 > 192.169.1.3.www: Flags [P.], seq 1:169, ack 1, win 3650, options [nop,nop,TS val 61703859 ecr 61703626], length 168
+E....w@.@.*M...........P.H
+........B
+......
+........GET /more-sekret/cheese HTTP/1.1
+User-Agent: curl/7.21.3 (i686-pc-linux-gnu) libcurl/7.21.3 OpenSSL/0.9.8o zlib/1.2.3.4 libidn/1.18
+Host: 192.169.1.3
+Accept: */*
+
+
+10:10:33.904948 IP 192.169.1.3.www > 192.169.1.2.44821: Flags [.], ack 169, win 3888, options [nop,nop,TS val 61703628 ecr 61703859], length 0
+E..4U.@.@.a..........P.......H.....0.e.....
+........
+10:10:33.911843 IP 192.169.1.3.www > 192.169.1.2.44821: Flags [P.], seq 1:809, ack 169, win 3888, options [nop,nop,TS val 61703630 ecr 61703859], length 808
+E..\U.@.@.^y.........P.......H.....0.......
+........HTTP/1.1 401 Authorization Required
+Date: Sun, 04 Nov 2012 16:10:31 GMT
+Server: Apache/2.2.17 (Ubuntu)
+WWW-Authenticate: Digest realm="supercool", nonce="mmGsm63NBAA=14b482f7a699604ebbff5c65742ae91ba62772d4", algorithm=MD5, qop="auth"
+Vary: Accept-Encoding
+Content-Length: 478
+Content-Type: text/html; charset=iso-8859-1
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>401 Authorization Required</title>
+</head><body>
+<h1>Authorization Required</h1>
+<p>This server could not verify that you
+are authorized to access the document
+requested.  Either you supplied the wrong
+credentials (e.g., bad password), or your
+browser doesn't understand how to supply
+the credentials required.</p>
+<hr>
+<address>Apache/2.2.17 (Ubuntu) Server at 192.169.1.3 Port 80</address>
+</body></html>
+
+10:10:33.911914 IP 192.169.1.2.44821 > 192.169.1.3.www: Flags [.], ack 809, win 4054, options [nop,nop,TS val 61703860 ecr 61703630], length 0
+E..4.x@.@.*............P.H.................
+........
+10:10:33.922323 IP 192.169.1.2.44821 > 192.169.1.3.www: Flags [P.], seq 169:594, ack 809, win 4054, options [nop,nop,TS val 61703863 ecr 61703630], length 425
+E....y@.@.)J...........P.H...........J.....
+........GET /more-sekret/cheese HTTP/1.1
+Authorization: Digest username="student2", realm="supercool", nonce="mmGsm63NBAA=14b482f7a699604ebbff5c65742ae91ba62772d4", uri="/more-sekret/cheese", cnonce="MjQ3MTE1", nc=00000001, qop="auth", response="f84e93699cca197106478d9ad906830b", algorithm="MD5"
+User-Agent: curl/7.21.3 (i686-pc-linux-gnu) libcurl/7.21.3 OpenSSL/0.9.8o zlib/1.2.3.4 libidn/1.18
+Host: 192.169.1.3
+Accept: */*
+
+
+10:10:33.925058 IP 192.169.1.3.www > 192.169.1.2.44821: Flags [P.], seq 809:1262, ack 594, win 4156, options [nop,nop,TS val 61703633 ecr 61703863], length 453
+E...U.@.@._..........P.......H,...<.......
+........HTTP/1.1 200 OK
+Date: Sun, 04 Nov 2012 16:10:31 GMT
+Server: Apache/2.2.17 (Ubuntu)
+Authentication-Info: rspauth="1ccf04d5404b8f4dea6f7a4cdd625713", cnonce="MjQ3MTE1", nc=00000001, qop=auth
+Last-Modified: Thu, 03 Nov 2011 19:20:45 GMT
+ETag: "243e9-6f-4b0d97c3726c6"
+Accept-Ranges: bytes
+Content-Length: 111
+Content-Type: text/plain
+
+plan for tonight: 1) download more Deadmau5, 2) epic dance party, 3) write code, 4) take over world, 5) profit
+
+10:10:33.933075 IP 192.169.1.2.44821 > 192.169.1.3.www: Flags [F.], seq 594, ack 1262, win 4458, options [nop,nop,TS val 61703866 ecr 61703633], length 0
+E..4.z@.@.*............P.H,.......j.......
+........
+10:10:33.933818 IP 192.169.1.3.www > 192.169.1.2.44821: Flags [F.], seq 1262, ack 595, win 4156, options [nop,nop,TS val 61703636 ecr 61703866], length 0
+E..4U.@.@.a..........P.......H-...<.......
+........
+10:10:33.934078 IP 192.169.1.2.44821 > 192.169.1.3.www: Flags [.], ack 1263, win 4458, options [nop,nop,TS val 61703866 ecr 61703636], length 0
+E..4.{@.@.*............P.H-.......j.......
+........
+10:10:33.946400 IP 192.169.1.2.pcrd > 192.169.1.1.51561: Flags [F.], seq 3587425486, ack 2216053320, win 3620, options [nop,nop,TS val 61703869 ecr 16864343], length 0
+E..4BE@.@.u)...........i......JH...$.......
+......TW
+10:10:33.949217 IP 192.169.1.1.51561 > 192.169.1.2.pcrd: Flags [.], ack 1, win 3650, options [nop,nop,TS val 16864395 ecr 61703869], length 0
+E..4..@.@..G.........i....JH.......B.|.....
+..T.....
+10:10:33.949544 IP 192.169.1.1.51561 > 192.169.1.2.pcrd: Flags [.], ack 1, win 3650, options [nop,nop,TS val 16864395 ecr 61703869], length 0
+E..4..@.@..G.........i....JH.......B.......
+..T.....
+10:10:33.951367 IP 192.169.1.1.51561 > 192.169.1.2.pcrd: Flags [F.], seq 1, ack 1, win 3650, options [nop,nop,TS val 16864395 ecr 61703869], length 0
+E..4..@.@..F.........i....JH.......B.|.....
+..T.....
+10:10:33.951550 IP 192.169.1.1.51561 > 192.169.1.2.pcrd: Flags [F.], seq 1, ack 1, win 3650, options [nop,nop,TS val 16864395 ecr 61703869], length 0
+E..4..@.@..F.........i....JH.......B.......
+..T.....
+10:10:33.953062 IP 192.169.1.2.pcrd > 192.169.1.1.51561: Flags [.], ack 2, win 3620, options [nop,nop,TS val 61703870 ecr 16864395], length 0
+E..4..@.@..^...........i......JI...$.......
+......T.
