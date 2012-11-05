@@ -4,6 +4,7 @@ import re
 import gc
 import sys
 import time
+import platform
 import hashlib
 from multiprocessing import Process
 
@@ -28,7 +29,7 @@ low_letters = range(97, 123)
 pass_max = 10
 pass_min = 0
 
-max_procs = 4  # Currently only applies during brute force
+max_procs = 5  # Currently only applies during brute force
 
 cracked_file = "cracked_pass.log"
 
@@ -50,7 +51,7 @@ class AuthContextException(Exception):
 
 
 class AuthContext:
-    def __init__(self, pw_generator):
+    def __init__(self):
         self.realm = ""
         self.username = ""
         self.password = ""  # Our target
@@ -67,12 +68,15 @@ class AuthContext:
 
         self.hashtype = "MD5"
 
-        self.pw_gen = pw_generator
+        self.pw_gen = None
         self.multiProc = False
 
 
     def setToMultiProc(self):
         self.multiProc = True
+        
+    def setPWGenerator(self, gen):
+        self.pw_gen = gen
 
     def crackPassword(self, data=None, filename=None):
         if data is None:
@@ -189,10 +193,14 @@ class AuthContext:
 def usage(name):
     print("Usage: {} [tcpdump_output] [dictionary]".format(name))
     print("Note: This is not the raw packet data but the result of running 'tcpdump -A [packets]'")
-
-
-def startCrackProcess(auth_ctx, auth_data, shared):
-    auth_ctx.crackPassword(auth_data)
+    
+def startCrackProcess(low, high, charset, ctx, auth_data, shared):
+	# We have to start the generator here because of limiations of multiprocessing
+	# on Windows under python. Data has to be pickled and recreated because there is
+	# no fork() call and generators cannot be pickled, hence we create it here.
+    gen = genPasswords(low, high, charset)
+    ctx.setPWGenerator(gen)
+    ctx.crackPassword(auth_data)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -211,7 +219,7 @@ if __name__ == '__main__':
 
             gc.disable()
             for line in f:
-                pw_dict.append(line)
+                pw_dict.append(line.strip())
 
             gc.enable()
 
@@ -219,6 +227,7 @@ if __name__ == '__main__':
 
     auth_context = None
     if len(pw_dict) == 0:
+        # Brute Force attack
         chars = numbers + cap_letters + low_letters
         charset = []
         for char in chars:
@@ -231,16 +240,17 @@ if __name__ == '__main__':
         processes = []
         proc_ranges = range(pass_min,pass_max,len_range)
         for index,low in enumerate(proc_ranges):
-            ctx = None
+            ctx = AuthContext()
+            high = None
             try:
                 print("Process: pw length {} -> {}".format(low, proc_ranges[index+1]-1))
-                ctx = AuthContext(genPasswords(low, proc_ranges[index+1]-1, charset))
+                high = proc_ranges[index+1]-1
             except IndexError:
                 print("Process: pw length {} -> {}".format(low, pass_max))
-                ctx = AuthContext(genPasswords(low, pass_max, charset))
+                high = pass_max
 
             ctx.setToMultiProc()
-            p = Process(target=startCrackProcess, args=(ctx, data, None))
+            p = Process(target=startCrackWin, args=(low, high, charset, ctx, data, None))
             p.start()
             processes.append(p)
 
@@ -250,7 +260,9 @@ if __name__ == '__main__':
             print("Cracker process finished")
 
     else:
-        auth_context = AuthContext(pw_dict)
+        # Dictionary attack
+        auth_context = AuthContext()
+        auth_context.setPWGenerator(pw_dict)
         auth_context.crackPassword(data)
 
     print("Check {} for any cracked passwords".format(cracked_file))
