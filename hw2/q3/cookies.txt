@@ -1,1 +1,1 @@
-192.169.1.3 FALSE / FALSE 0 secureCookie Nick%3D5c3f3ee
+192.169.1.3	FALSE	/	FALSE	1355160505	secureCookie	Nick%3D5c3f3ee
