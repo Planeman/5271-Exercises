@@ -1,1 +1,73 @@
-sudo tcpdump -i eth1 -W auth_packets &
+Command used to run tcpdump:
+============================
+  sudo tcpdump -i eth1 -W auth_packets &
+
+
+Following are formatted tcpdump packets created using:
+======================================================
+  "tcpdump -A -r raw_packets >> formatted_packets"
+
+
+The intial authorization request:
+=================================
+
+%u>HTTP/1.1 401 Authorization Required
+Date: Fri, 09 Nov 2012 16:45:24 GMT
+Server: Apache/2.2.17 (Ubuntu)
+WWW-Authenticate: Basic realm="Restricted File"
+Vary: Accept-Encoding
+Content-Length: 478
+Keep-Alive: timeout=15, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=iso-8859-1
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>401 Authorization Required</title>
+</head><body>
+<h1>Authorization Required</h1>
+<p>This server could not verify that you
+are authorized to access the document
+requested.  Either you supplied the wrong
+credentials (e.g., bad password), or your
+browser doesn't understand how to supply
+the credentials required.</p>
+<hr>
+<address>Apache/2.2.17 (Ubuntu) Server at 192.169.1.3 Port 80</address>
+</body></html>
+
+
+The client response with the base64 encode username:pass
+========================================================
+
+%teGET /sekret/file HTTP/1.0
+User-Agent: Wget/1.12 (linux-gnu)
+Accept: */*
+Host: 192.169.1.3
+Connection: Keep-Alive
+Authorization: Basic c3R1ZGVudDplcGljbWVhbHRpbWU=
+
+
+The server response with the page contents
+==========================================
+
+%uNHTTP/1.1 200 OK
+Date: Fri, 09 Nov 2012 16:45:24 GMT
+Server: Apache/2.2.17 (Ubuntu)
+Last-Modified: Thu, 03 Nov 2011 19:19:38 GMT
+ETag: "2440e-33-4b0d9783b3168"
+Accept-Ranges: bytes
+Content-Length: 51
+Keep-Alive: timeout=15, max=99
+Connection: Keep-Alive
+Content-Type: text/plain
+
+I don't waste too much time on youtube, I swear...
+
+
+Base64 decoded username:pass
+============================
+c3R1ZGVudDplcGljbWVhbHRpbWU= -> student:epicmealtime
+
+usename = student
+password = epicmealtime
