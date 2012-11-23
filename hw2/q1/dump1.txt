@@ -5,7 +5,7 @@ Command used to run tcpdump:
 
 Following are formatted tcpdump packets created using:
 ======================================================
-  "tcpdump -A -r raw_packets >> formatted_packets"
+  "tcpdump -A -r auth_packets >> formatted_packets"
 
 
 The intial authorization request:
@@ -37,8 +37,8 @@ the credentials required.</p>
 </body></html>
 
 
-The client response with the base64 encode username:pass
-========================================================
+The client response with the base64 encoded username:pass
+=========================================================
 
 %teGET /sekret/file HTTP/1.0
 User-Agent: Wget/1.12 (linux-gnu)
