@@ -1,0 +1,71 @@
+Command used to caputre packets with tcpdump:
+=============================================
+  sudo tcpdump -i eth1 -W auth_packets &
+
+Packets formatted using the tcpdump command:
+============================================
+  "tcpdump -A -r auth_packets >> formatted_packets"
+
+
+Initial client request
+======================
+
+.ez..ey.GET /more-sekret/cheese HTTP/1.1
+User-Agent: curl/7.21.3 (i686-pc-linux-gnu) libcurl/7.21.3 OpenSSL/0.9.8o zlib/1.2.3.4 libidn/1.18
+Host: 192.169.1.3
+Accept: */*
+
+
+
+Server Authorization request:
+=============================
+
+.ey..ez.HTTP/1.1 401 Authorization Required
+Date: Mon, 19 Nov 2012 05:06:53 GMT
+Server: Apache/2.2.17 (Ubuntu)
+WWW-Authenticate: Digest realm="supercool", nonce="gmLuFdLOBAA=7709b3cccd595187e74c2c976e1db4bfefedd355", algorithm=MD5, qop="auth"
+Vary: Accept-Encoding
+Content-Length: 478
+Content-Type: text/html; charset=iso-8859-1
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>401 Authorization Required</title>
+</head><body>
+<h1>Authorization Required</h1>
+<p>This server could not verify that you
+are authorized to access the document
+requested.  Either you supplied the wrong
+credentials (e.g., bad password), or your
+browser doesn't understand how to supply
+the credentials required.</p>
+<hr>
+<address>Apache/2.2.17 (Ubuntu) Server at 192.169.1.3 Port 80</address>
+</body></html>
+
+
+Client response with digest:
+============================
+
+.ez..ey.GET /more-sekret/cheese HTTP/1.1
+Authorization: Digest username="student2", realm="supercool", nonce="gmLuFdLOBAA=7709b3cccd595187e74c2c976e1db4bfefedd355", uri="/more-sekret/cheese", cnonce="MTUwMzI5", nc=00000001, qop="auth", response="dbdc9c313bd81863ff8081d4c68b82a1", algorithm="MD5"
+User-Agent: curl/7.21.3 (i686-pc-linux-gnu) libcurl/7.21.3 OpenSSL/0.9.8o zlib/1.2.3.4 libidn/1.18
+Host: 192.169.1.3
+Accept: */*
+
+
+
+Server response with page content:
+==================================
+
+.ey..ez.HTTP/1.1 200 OK
+Date: Mon, 19 Nov 2012 05:06:53 GMT
+Server: Apache/2.2.17 (Ubuntu)
+Authentication-Info: rspauth="2f3ff3a8ba2e7ec906ed70bbade9baff", cnonce="MTUwMzI5", nc=00000001, qop=auth
+Last-Modified: Thu, 03 Nov 2011 19:20:45 GMT
+ETag: "243e9-6f-4b0d97c3726c6"
+Accept-Ranges: bytes
+Content-Length: 111
+Content-Type: text/plain
+
+plan for tonight: 1) download more Deadmau5, 2) epic dance party, 3) write code, 4) take over world, 5) profit

