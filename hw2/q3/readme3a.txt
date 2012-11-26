@@ -15,6 +15,4 @@ the following text:
 me!!!!1!"
 
 The editing of the cookie was done in firefox using an extension. The
-line in cookies.txt was written by hand after looking up the format of
-the Netscape cookies.txt format and copying what was presented in
-firefox.
+line in cookies.txt was exported using the firefox plugin.
