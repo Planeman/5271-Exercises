@@ -14,7 +14,5 @@ the following text:
 "I am deeply afraid of Micky Mouse, but no one will know this but
 me!!!!1!"
 
-The viewing/editing of the cookie was done in firefox using an extension. The
-line in cookies.txt was written by hand after looking up the format of
-the Netscape cookies.txt format and copying what was presented in
-firefox.
+The editing of the cookie was done in firefox using an extension. The
+line in cookies.txt was exported using the firefox plugin.
