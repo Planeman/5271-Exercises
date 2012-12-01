@@ -14,7 +14,7 @@ def findFriends(send_rounds, rec_rounds, user):
     data from send and receive rounds using an extended statistical
     disclosure attack.
     """
-    b_traffic = [1.0/numUsers] * 260
+    b_traffic = [0] * 260
 
     rounds_not_in = 0
     total_messages = 0
