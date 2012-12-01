@@ -4,7 +4,7 @@ from parse_rounds import parseRounds
 
 numUsers = 260
 num_rounds = 256
-usersPerRound = 32
+users_per_round = 32
 usersToIndex = {}
 indexToUsers = {}
 
@@ -25,19 +25,24 @@ def findFriends(send_rounds, rec_rounds, user):
 
     for index,send_round in enumerate(send_rounds):
         if user in send_round:
-            for user in rec_rounds[index]:
-                observations[getIndexForUser(user)] += 1/num_rounds
+            for s_user in rec_rounds[index]:
+                observations[getIndexForUser(s_user)] += 1.0/num_rounds
 
             total_messages += send_round.count(user)
         else:
-            for user in rec_rounds[index]:
-                b_traffic[getIndexForUser(user)] += 1.0/usersPerRound
+            for r_user in rec_rounds[index]:
+                b_traffic[getIndexForUser(r_user)] += 1.0/users_per_round
+
             rounds_not_in += 1
 
-    b_traffic = map(lambda traffic: traffic / float(rounds_not_in), b_traffic)
+    if rounds_not_in == num_rounds:
+        return []
+
+    print("{} not in {} send rounds".format(user, rounds_not_in))
+    b_traffic[:] = map(lambda traffic: traffic / float(rounds_not_in), b_traffic)
 
     user_avg_msgs = total_messages / float(num_rounds)
-    b_traffic = map(lambda traffic: (usersPerRound - user_avg_msgs) * traffic, b_traffic)
+    b_traffic[:] = map(lambda traffic: (users_per_round - user_avg_msgs) * traffic, b_traffic)
 
     user_recipient_prob = []
     for i in range(len(observations)):
@@ -45,7 +50,12 @@ def findFriends(send_rounds, rec_rounds, user):
         traffic = b_traffic[i]
         user_recipient_prob.append((obs - traffic) / float(user_avg_msgs))
 
-    return filter(lambda x: x > 0, user_recipient_prob)
+    friends = []
+    for index,val in enumerate(user_recipient_prob):
+        if val > 0:
+            friends.append(getUserForIndex(index))
+
+    return friends
 
 
 def buildUserIndexes():
