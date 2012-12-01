@@ -14,35 +14,35 @@ def findFriends(send_rounds, rec_rounds, user):
     data from send and receive rounds using an extended statistical
     disclosure attack.
     """
-    background_traffic = [1.0/numUsers] * 260
+    b_traffic = [1.0/numUsers] * 260
 
     rounds_not_in = 0
     total_messages = 0
 
-    round_observations = [0] * 260
+    observations = [0] * 260
 
     num_rounds = float(len(send_rounds))
 
     for index,send_round in enumerate(send_rounds):
         if user in send_round:
             for user in rec_rounds[index]:
-                round_observations[getIndexForUser(user)] += 1/num_rounds
+                observations[getIndexForUser(user)] += 1/num_rounds
 
             total_messages += send_round.count(user)
         else:
             for user in rec_rounds[index]:
-                background_traffic[getIndexForUser(user)] += 1.0/usersPerRound
+                b_traffic[getIndexForUser(user)] += 1.0/usersPerRound
             rounds_not_in += 1
 
-    background_traffic = map(lambda traffic: traffic / float(rounds_not_in), background_traffic)
+    b_traffic = map(lambda traffic: traffic / float(rounds_not_in), b_traffic)
 
     user_avg_msgs = total_messages / float(num_rounds)
-    background_traffic = map(lambda traffic: (usersPerRound - user_avg_msgs) * traffic, background_traffic)
+    b_traffic = map(lambda traffic: (usersPerRound - user_avg_msgs) * traffic, b_traffic)
 
     user_recipient_prob = []
-    for i in range(numUsers):
-        obs = round_observations[i]
-        traffic = background_traffic[i]
+    for i in range(len(observations)):
+        obs = observations[i]
+        traffic = b_traffic[i]
         user_recipient_prob.append((obs - traffic) / float(user_avg_msgs))
 
     return filter(lambda x: x > 0, user_recipient_prob)
