@@ -58,7 +58,6 @@ if __name__ == '__main__':
         sys.exit(1)
 
     buildUserIndexes()
-    print(usersToIndex)
 
     send_rounds, receive_rounds = parseRounds(sys.argv[1])
 
