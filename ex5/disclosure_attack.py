@@ -3,6 +3,7 @@ from string import ascii_lowercase
 from parse_rounds import parseRounds
 
 numUsers = 260
+num_rounds = 256
 usersPerRound = 32
 usersToIndex = {}
 indexToUsers = {}
@@ -13,10 +14,10 @@ def findFriends(send_rounds, rec_rounds, user):
     data from send and receive rounds using an extended statistical
     disclosure attack.
     """
-    user_send_prob = [0] * 260
     background_traffic = [1.0/numUsers] * 260
-    for index,value in enumerate(background_traffic):
-        background_traffic[index] = (usersPerRound - 1) * value
+
+    rounds_not_in = 0
+    total_messages = 0
 
     round_observations = [0] * 260
 
@@ -27,13 +28,24 @@ def findFriends(send_rounds, rec_rounds, user):
             for user in rec_rounds[index]:
                 round_observations[getIndexForUser(user)] += 1/num_rounds
 
-    friends = []
-    for index,obs in enumerate(round_observations):
-        friend_val = obs - background_traffic[index]
-        if friend_val > 0:
-            friends.append(getUserForIndex(index))
+            total_messages += send_round.count(user)
+        else:
+            for user in rec_rounds[index]:
+                background_traffic[getIndexForUser(user)] += 1.0/usersPerRound
+            rounds_not_in += 1
 
-    return friends
+    background_traffic = map(lambda traffic: traffic / float(rounds_not_in), background_traffic)
+
+    user_avg_msgs = total_messages / float(num_rounds)
+    background_traffic = map(lambda traffic: (usersPerRound - user_avg_msgs) * traffic, background_traffic)
+
+    user_recipient_prob = []
+    for i in range(numUsers):
+        obs = round_observations[i]
+        traffic = background_traffic[i]
+        user_recipient_prob.append((obs - traffic) / float(user_avg_msgs))
+
+    return filter(lambda x: x > 0, user_recipient_prob)
 
 
 def buildUserIndexes():
