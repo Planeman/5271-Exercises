@@ -51,12 +51,12 @@ def findFriends(send_rounds, rec_rounds, user):
     observations[:] = map(lambda obs: obs / float(num_rounds), observations)
 
     user_recipient_prob = vectorOp(observations, traffic, lambda x,y: (x-y) / float(user_avg_msgs))
-    print("User_recipient_prob = {}".format(user_recipient_prob))
+    #print("User_recipient_prob = {}".format(user_recipient_prob))
 
     friends = []
-    for index,val in enumerate(user_recipient_prob):
-        if val > 0:
-            friends.append(getUserForIndex(index))
+    friends.append(getUserForIndex(user_recipient_prob.index(max(user_recipient_prob))))
+    user_recipient_prob.sort()
+    print("Highest % friends: {}".format(user_recipient_prob[-5:][::-1]))
 
     return friends
 
