@@ -26,12 +26,14 @@ def findFriends(send_rounds, rec_rounds, user):
     for index,send_round in enumerate(send_rounds):
         round_obs = [0.0] * 260
         if user in send_round:
+            # User is sending in a round so add to observation vector
             for r_user in rec_rounds[index]:
                 round_obs[getIndexForUser(r_user)] = 1.0/users_per_round
 
             observations = vectorOp(observations, round_obs, lambda x,y: x+y)
             total_messages += send_round.count(user)
         else:
+            # User is *not* sending in ths round so add to the background traffic vector
             traffic = [0] * 260
             for r_user in rec_rounds[index]:
                 traffic[getIndexForUser(r_user)] = 1.0/users_per_round
@@ -44,6 +46,7 @@ def findFriends(send_rounds, rec_rounds, user):
 
     b_traffic[:] = map(lambda traffic: traffic / float(rounds_not_in), b_traffic)
 
+    # Avg # of messages sent per round by the target user
     user_avg_msgs = total_messages / float(num_rounds)
     b_traffic[:] = map(lambda traffic: (users_per_round - user_avg_msgs) * traffic, b_traffic)
 
@@ -51,17 +54,13 @@ def findFriends(send_rounds, rec_rounds, user):
     observations[:] = map(lambda obs: obs / float(num_rounds), observations)
 
     user_recipient_prob = vectorOp(observations, traffic, lambda x,y: (x-y) / float(user_avg_msgs))
-    #print("User_recipient_prob = {}".format(user_recipient_prob))
 
     friends = []
-    user_prob_copy = list(user_recipient_prob)
-    mx = max(user_prob_copy)
-    friends.append(getUserForIndex(user_prob_copy.index(mx)))
-    user_prob_copy.remove(mx)
-    mx = max(user_prob_copy)
-    friends.append(getUserForIndex(user_prob_copy.index(mx)))
+    top_two = findMaxTwo(user_recipient_prob)
+    friends.append(getUserForIndex(top_two[0][0]))
+    friends.append(getUserForIndex(top_two[1][0]))
     user_recipient_prob.sort()
-    print("Highest % friends: {}".format(user_recipient_prob[-5:][::-1]))
+    print("Highest % friends: {}".format(user_recipient_prob[-4:][::-1]))
 
     return friends
 
@@ -72,6 +71,22 @@ def vectorOp(v1, v2, func):
 
     return new_vector
 
+def findMaxTwo(vector):
+    top_index = top_value = -99999
+    pen_index = pen_value = -99999
+
+    for index,val in enumerate(vector):
+        if val > top_value:
+            pen_index = top_index
+            pen_value = top_value
+            top_index = index
+            top_value = val
+        elif val > pen_value:
+            pen_index = index
+            pen_value = val
+
+    return ((top_index, top_value), (pen_index, pen_value))
+
 def buildUserIndexes():
     lowest_char = ord(ascii_lowercase[0])
     for char in ascii_lowercase:
@@ -81,6 +96,13 @@ def buildUserIndexes():
 
             usersToIndex[user] = index
             indexToUsers[index] = user
+
+def targetUserVector():
+    target_user_names = []
+    for char in ascii_lowercase:
+        target_user_names.append("{}0".format(char))
+
+    return target_user_names
 
 def getIndexForUser(user):
     return usersToIndex[user]
@@ -97,8 +119,8 @@ if __name__ == '__main__':
 
     send_rounds, receive_rounds = parseRounds(sys.argv[1])
 
-    for user,index in usersToIndex.items():
-    #for user in ['a0','b0','e0']:
+    #for user,index in usersToIndex.items():
+    for index,user in enumerate(targetUserVector()):
         friends = findFriends(send_rounds, receive_rounds, user)
         print("{} -> {}".format(user, friends))
 
