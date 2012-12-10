@@ -19,56 +19,38 @@ def findFriends(send_rounds, rec_rounds, user):
     rounds_not_in = 0  # t'
     total_messages = 0  # m
 
-    observations = [0] * 260 # o vector
+    observations = [0.0] * 260 # o vector
 
     num_rounds = float(len(send_rounds))  # t
 
     for index,send_round in enumerate(send_rounds):
+        round_obs = [0.0] * 260
         if user in send_round:
-            msgs_in_round = send_round.count(user)
-
-            seen_recipients = []
             for r_user in rec_rounds[index]:
-                if r_user in seen_recipients:
-                    continue
+                round_obs[getIndexForUser(r_user)] = 1.0/users_per_round
 
-                seen_recipients.append(r_user)
-                observations[getIndexForUser(r_user)] += float(msgs_in_round)/num_rounds
-
-            total_messages += msgs_in_round
+            observations = vectorOp(observations, round_obs, lambda x,y: x+y)
+            total_messages += send_round.count(user)
         else:
-            seen_recipients = []
+            traffic = [0] * 260
             for r_user in rec_rounds[index]:
-                if r_user in seen_recipients:
-                    continue
+                traffic[getIndexForUser(r_user)] = 1.0/users_per_round
 
-                seen_recipients.append(r_user)
-                b_traffic[getIndexForUser(r_user)] += 1.0/users_per_round
-
+            b_traffic = vectorOp(b_traffic, traffic, lambda x,y: x+y)
             rounds_not_in += 1
 
     if rounds_not_in == int(num_rounds):
         return []
 
-    print("b_traffic = {}".format(b_traffic))
-    print("observations = {}".format(observations))
-
-    t_obs = map(lambda obs: obs * int(num_rounds), observations)
-    print("t * observations = {}".format(t_obs))
-    print("{} not in {} send rounds".format(user, rounds_not_in))
     b_traffic[:] = map(lambda traffic: traffic / float(rounds_not_in), b_traffic)
 
     user_avg_msgs = total_messages / float(num_rounds)
     b_traffic[:] = map(lambda traffic: (users_per_round - user_avg_msgs) * traffic, b_traffic)
 
-    print("b_traffic = {}".format(b_traffic))
+    observations[:] = map(lambda obs: (obs * users_per_round), observations)
+    observations[:] = map(lambda obs: obs / float(num_rounds), observations)
 
-    user_recipient_prob = []  # final v vector
-    for i in range(len(observations)):
-        obs = observations[i]
-        traffic = b_traffic[i]
-        user_recipient_prob.append((obs - traffic) / float(user_avg_msgs))
-
+    user_recipient_prob = vectorOp(observations, traffic, lambda x,y: (x-y) / float(user_avg_msgs))
     print("User_recipient_prob = {}".format(user_recipient_prob))
 
     friends = []
@@ -78,6 +60,12 @@ def findFriends(send_rounds, rec_rounds, user):
 
     return friends
 
+def vectorOp(v1, v2, func):
+    new_vector = []
+    for index,item in enumerate(v1):
+        new_vector.append(func(item,v2[index]))
+
+    return new_vector
 
 def buildUserIndexes():
     lowest_char = ord(ascii_lowercase[0])
