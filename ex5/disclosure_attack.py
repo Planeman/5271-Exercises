@@ -54,7 +54,12 @@ def findFriends(send_rounds, rec_rounds, user):
     #print("User_recipient_prob = {}".format(user_recipient_prob))
 
     friends = []
-    friends.append(getUserForIndex(user_recipient_prob.index(max(user_recipient_prob))))
+    user_prob_copy = list(user_recipient_prob)
+    mx = max(user_prob_copy)
+    friends.append(getUserForIndex(user_prob_copy.index(mx)))
+    user_prob_copy.remove(mx)
+    mx = max(user_prob_copy)
+    friends.append(getUserForIndex(user_prob_copy.index(mx)))
     user_recipient_prob.sort()
     print("Highest % friends: {}".format(user_recipient_prob[-5:][::-1]))
 
@@ -92,8 +97,8 @@ if __name__ == '__main__':
 
     send_rounds, receive_rounds = parseRounds(sys.argv[1])
 
-    #for user,index in usersToIndex.items():
-    for user in ['a0','b0','e0']:
+    for user,index in usersToIndex.items():
+    #for user in ['a0','b0','e0']:
         friends = findFriends(send_rounds, receive_rounds, user)
         print("{} -> {}".format(user, friends))
 
